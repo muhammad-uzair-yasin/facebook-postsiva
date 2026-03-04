@@ -1,6 +1,7 @@
 export interface FacebookPage {
   page_id: string;
   page_name?: string;
+  page_vanity_name?: string;
   page_access_token?: string;
   page_category?: string;
   page_permissions?: string;

@@ -69,6 +69,7 @@ export default function ScheduledPage() {
   const { selectedPage } = useSelectedPage();
   const selectedPageId = selectedPage?.page_id || "";
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [storageMedia, setStorageMedia] = useState<MediaItem[]>([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
@@ -208,12 +209,14 @@ export default function ScheduledPage() {
             const mediaType = isVideo ? 'video' : 'image';
             
             setLoadingMedia(true);
+            setUploadProgress(0);
             const result = await uploadMedia({
               media: file,
               media_type: mediaType,
               platform: 'facebook',
+              onProgress: setUploadProgress,
             });
-            
+            setUploadProgress(100);
             if (result.success && 'media_id' in result && result.media_id) {
               setSelectedMediaId(result.media_id);
               if (isVideo && postType !== 'video') {
@@ -226,6 +229,7 @@ export default function ScheduledPage() {
             console.error("Failed to upload media:", err);
           } finally {
             setLoadingMedia(false);
+            setUploadProgress(0);
           }
         }
       }
@@ -949,6 +953,14 @@ export default function ScheduledPage() {
                             </div>
                           </div>
                         </div>
+                        {uploadProgress > 0 && (
+                          <div className="mt-3 w-full">
+                            <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">{uploadProgress}%</p>
+                          </div>
+                        )}
                       </section>
                     )}
 

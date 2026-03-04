@@ -53,6 +53,7 @@ function PostPageContent() {
   const selectedPageId = selectedPage?.page_id || "";
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [storageMedia, setStorageMedia] = useState<any[]>([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
@@ -558,12 +559,14 @@ function PostPageContent() {
             const isVideo = file.type.startsWith('video/');
             const mediaType = isVideo ? 'video' : 'image';
             
+            setUploadProgress(0);
             const result = await uploadMedia({
               media: file,
               media_type: mediaType,
               platform: 'facebook',
+              onProgress: setUploadProgress,
             });
-            
+            setUploadProgress(100);
             if (result.success && 'media_id' in result && result.media_id) {
               setSelectedMediaId(result.media_id);
               // Update previewUrls with public_url from response (not blob URL)
@@ -580,6 +583,8 @@ function PostPageContent() {
           } catch (err) {
             console.error("Failed to upload file:", err);
             alert("Failed to upload file. Please try again.");
+          } finally {
+            setUploadProgress(0);
           }
         }
       }
@@ -1036,6 +1041,14 @@ function PostPageContent() {
                   </div>
                 </div>
               </div>
+              {uploadProgress > 0 && (
+                <div className="mt-3 w-full">
+                  <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{uploadProgress}%</p>
+                </div>
+              )}
             </section>
           )}
 

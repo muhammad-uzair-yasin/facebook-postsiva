@@ -36,6 +36,7 @@ export default function StoragePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -118,6 +119,7 @@ export default function StoragePage() {
 
     try {
       setUploading(true);
+      setUploadProgress(0);
       setUploadError(null);
       setUploadSuccess(null);
 
@@ -139,6 +141,7 @@ export default function StoragePage() {
           media: file,
           media_type: mediaType,
           platform: 'facebook',
+          onProgress: setUploadProgress,
         });
 
         if (result.success) {
@@ -160,6 +163,7 @@ export default function StoragePage() {
           images: uploadFiles,
           media_type: 'images',
           platform: 'facebook',
+          onProgress: setUploadProgress,
         });
 
         if (result.success && 'uploaded_count' in result) {
@@ -171,10 +175,11 @@ export default function StoragePage() {
           setUploadError(result.message || 'Upload failed');
         }
       }
-    } catch (err: any) {
-      setUploadError(err.message || 'Upload failed');
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -521,6 +526,19 @@ export default function StoragePage() {
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
                   <p className="text-sm font-bold text-green-700">{uploadSuccess}</p>
+                </div>
+              )}
+
+              {/* Upload progress bar */}
+              {uploading && (
+                <div className="mb-6">
+                  <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">{uploadProgress}%</p>
                 </div>
               )}
 

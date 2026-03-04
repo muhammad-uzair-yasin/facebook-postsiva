@@ -5,8 +5,9 @@ import type { GoogleAuthResponse } from './types';
 /**
  * Build the Google login URL on the backend.
  * Frontend will redirect the browser to this URL.
+ * @param options.redirectPath - Optional; reserved for future use.
  */
-export function buildGoogleLoginUrl(): string {
+export function buildGoogleLoginUrl(_options?: { redirectPath?: string }): string {
   const redirectUri = getFrontendCallbackUrl();
   return buildGoogleOAuthLoginUrl(redirectUri);
 }

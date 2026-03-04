@@ -36,7 +36,7 @@ export function useFacebookUserProfile(options: UseFacebookUserProfileOptions = 
       try {
         const res = await fetchFacebookUserProfile(refresh);
         if (!res.success) {
-          throw new Error(res.error || res.message ?? 'Failed to load Facebook profile');
+          throw new Error((res.error ?? res.message) ?? 'Failed to load Facebook profile');
         }
         dispatch({ type: 'FB_PROFILE_SUCCESS', payload: res.profile });
         return res;

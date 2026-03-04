@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useFacebookUserProfile } from "@/lib/hooks/facebook/userProfile/useFacebookUserProfile";
+import type { FacebookUserProfile } from "@/lib/hooks/facebook/userProfile/types";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
 import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 
@@ -15,7 +16,7 @@ export default function ProfilePage() {
   const workspaceProfile = currentWorkspace?.facebook_profile;
   const { profile, loading, error, loadProfile } = useFacebookUserProfile({
     autoLoad: false,
-    initialProfile: workspaceProfile ?? undefined,
+    initialProfile: (workspaceProfile ?? undefined) as FacebookUserProfile | undefined,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   

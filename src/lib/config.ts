@@ -81,12 +81,12 @@ export const API_ENDPOINTS = {
     },
   },
 
-  // Media
+  // Media (unified API: list GET /media?platform=...&media_type=...&limit=...&offset=..., get GET /media/{id}, delete DELETE /media/{id})
   MEDIA: {
     UPLOAD: '/media/upload',
-    LIST: '/media/list',
-    GET: '/media/get',
-    DELETE: '/media/delete',
+    LIST: '/media',
+    GET: '/media',
+    DELETE: '/media',
   },
 
   // Dashboard

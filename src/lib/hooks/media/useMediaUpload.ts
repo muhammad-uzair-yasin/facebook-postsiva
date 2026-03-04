@@ -33,37 +33,20 @@ export function useMediaUpload() {
 
   // Upload a single file
   const upload = useCallback(async (file: File) => {
-    setState((prev) => ({ ...prev, isUploading: true, error: null }));
+    setState((prev) => ({ ...prev, isUploading: true, uploadProgress: 0, error: null }));
 
     try {
-      // Simulate progress increments
-      const progressInterval = setInterval(() => {
-        setState((prev) => {
-          const newProgress = Math.min(prev.uploadProgress + 10, 90);
-          return { ...prev, uploadProgress: newProgress };
-        });
-      }, 200);
-
       const response = await uploadMedia({
         media: file,
         media_type: file.type.startsWith('video/') ? 'video' : 'image',
         platform: 'facebook',
+        onProgress: (percent) => setState((prev) => ({ ...prev, uploadProgress: percent })),
       });
 
-      clearInterval(progressInterval);
-      setState((prev) => ({
-        ...prev,
-        uploadProgress: 100,
-        isUploading: false,
-        // Response doesn't include media item, will need to refetch
-      }));
+      setState((prev) => ({ ...prev, uploadProgress: 100, isUploading: false }));
 
-      // Reset progress after 1 second
       setTimeout(() => {
-        setState((prev) => ({
-          ...prev,
-          uploadProgress: 0,
-        }));
+        setState((prev) => ({ ...prev, uploadProgress: 0 }));
       }, 1000);
 
       return response;
@@ -80,27 +63,23 @@ export function useMediaUpload() {
 
   // Upload multiple files
   const uploadMultiple = useCallback(async (files: File[]) => {
-    setState((prev) => ({ ...prev, isUploading: true, error: null }));
+    setState((prev) => ({ ...prev, isUploading: true, uploadProgress: 0, error: null }));
 
     try {
-      // Use uploadMedia with images array for bulk upload
       const response = await uploadMedia({
         images: files,
         media_type: 'images',
         platform: 'facebook',
+        onProgress: (percent) => setState((prev) => ({ ...prev, uploadProgress: percent })),
       });
       setState((prev) => ({
         ...prev,
         isUploading: false,
         uploadProgress: 100,
-        media: [...(prev.media || []), ...((response as any).media_ids?.map((id: string) => ({ media_id: id })) || [])],
       }));
 
       setTimeout(() => {
-        setState((prev) => ({
-          ...prev,
-          uploadProgress: 0,
-        }));
+        setState((prev) => ({ ...prev, uploadProgress: 0 }));
       }, 1000);
 
       return response;
@@ -121,6 +100,7 @@ export function useMediaUpload() {
 
     try {
       const response = await listMedia({
+        platform: 'facebook',
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });
@@ -156,7 +136,7 @@ export function useMediaUpload() {
       try {
         const response = await listMedia({
           media_type: params.file_type as 'image' | 'video' | undefined,
-          platform: params.platform,
+          platform: params.platform ?? 'facebook',
           limit: 100,
         });
         setState((prev) => ({
@@ -227,6 +207,7 @@ export function useMediaUpload() {
     try {
       // Cleanup is not available in API, just refetch
       const response = await listMedia({
+        platform: 'facebook',
         limit: state.pageSize,
         offset: 0,
       });
