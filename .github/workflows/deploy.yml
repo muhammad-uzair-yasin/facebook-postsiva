@@ -1,66 +1,22 @@
-name: Deploy Facebook Frontend to Server
+name: Deploy
 
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy Facebook Frontend to Server
-        if: github.ref_name == 'main' || github.ref_name == 'master'
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          timeout: 60s
-          command_timeout: 10m
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            # Navigate to facebook frontend project directory
-            cd /root/facebook-postsiva
-
-            # Stash any local changes and pull latest changes
-            git stash
-            git fetch origin ${{ github.ref_name }}
-            git reset --hard origin/${{ github.ref_name }}
-
-            # Install dependencies (if package.json changed)
+            cd /root/facebook-postsiva-prod
+            git pull origin master
             npm install
-
-            # Build the frontend for production
             npm run build
-
-            # Verify build was successful
-            if [ -d ".next" ]; then
-              echo "✅ Facebook frontend build successful - '.next' directory created"
-              ls -la .next/ | head -5
-            else
-              echo "❌ Facebook frontend build failed - '.next' directory not found"
-              exit 1
-            fi
-
-            # Restart PM2 application
-            pm2 restart facebook-postsiva
-
-            # Wait for PM2 to fully restart
-            sleep 5
-
-            # Check PM2 status
-            pm2 status facebook-postsiva
-
-            # Test nginx configuration
-            nginx -t
-
-            # Reload nginx
-            systemctl reload nginx
-
-            # Verify facebook frontend is accessible
-            echo "Testing facebook frontend accessibility..."
-            curl -I http://localhost:3001/ || echo "Facebook frontend test failed"
-            curl -I https://facebook.postsiva.com/ || echo "Facebook frontend HTTPS test failed"
-
-            echo "🚀 Facebook frontend deployment completed successfully!"
+            pm2 restart facebook-postsiva-prod
