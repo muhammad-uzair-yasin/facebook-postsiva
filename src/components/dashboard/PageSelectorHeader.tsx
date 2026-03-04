@@ -11,7 +11,7 @@ import { useSelectedPage } from "@/lib/hooks/facebook/selectedPage/SelectedPageC
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
 import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 import { useFacebookUserProfile } from "@/lib/hooks/facebook/userProfile/useFacebookUserProfile";
-import { useRouter } from "next/navigation";
+import type { FacebookUserProfile } from "@/lib/hooks/facebook/userProfile/types";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -21,10 +21,9 @@ export function PageSelectorHeader() {
   const { currentWorkspace } = useWorkspaceContext();
   const workspaceProfile = currentWorkspace?.facebook_profile;
   const { profile } = useFacebookUserProfile({
-    autoLoad: !workspaceProfile,
-    initialProfile: workspaceProfile ?? undefined,
+    autoLoad: false,
+    initialProfile: (workspaceProfile ?? undefined) as FacebookUserProfile | undefined,
   });
-  const router = useRouter();
   const [showPageDropdown, setShowPageDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -49,12 +48,22 @@ export function PageSelectorHeader() {
     setImageError(false);
   }, [user, profile]);
 
-  // Load pages on mount if not already loaded
+  // Seed pages only from workspace (login response). Do not call GET /facebook/pages on enter.
   useEffect(() => {
-    if (mounted && pages.length === 0 && !loading) {
-      loadPages();
+    if (!mounted) return;
+    const workspacePages = currentWorkspace?.facebook_pages;
+    if (workspacePages?.length && pages.length === 0) {
+      const mapped: FacebookPage[] = workspacePages.map((p) => ({
+        page_id: p.id,
+        page_name: p.name ?? undefined,
+      }));
+      setPages(mapped);
+      if (!selectedPage) setSelectedPage(mapped[0]);
     }
-  }, [mounted]);
+    if (pages.length === 0) {
+      setLoading(false);
+    }
+  }, [mounted, currentWorkspace?.facebook_pages, pages.length, selectedPage, setPages, setSelectedPage, setLoading]);
 
   // Auto-select first page if none selected but pages are available
   useEffect(() => {
@@ -87,6 +96,7 @@ export function PageSelectorHeader() {
     );
   }
 
+  /** Call only on explicit refresh (e.g. button); do not call on mount. */
   const loadPages = async () => {
     try {
       setLoading(true);

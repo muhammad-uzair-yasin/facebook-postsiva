@@ -15,11 +15,19 @@ export interface UseFacebookUserProfileOptions {
   initialProfile?: FacebookUserProfile | null;
 }
 
+function getInitialProfileState(initialProfile: FacebookUserProfile | null | undefined) {
+  return {
+    ...initialFacebookUserProfileState,
+    profile: initialProfile ?? null,
+  };
+}
+
 export function useFacebookUserProfile(options: UseFacebookUserProfileOptions = {}) {
   const { autoLoad = true, initialProfile } = options;
   const [state, dispatch] = useReducer(
     facebookUserProfileReducer,
-    initialFacebookUserProfileState,
+    initialProfile ?? null,
+    getInitialProfileState,
   );
 
   const loadProfile = useCallback(

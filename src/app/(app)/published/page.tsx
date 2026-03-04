@@ -5,7 +5,6 @@ import { RefreshCw, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "luci
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { fetchFacebookPosts } from "@/lib/hooks/facebook/posts/api";
-import { fetchFacebookPages } from "@/lib/hooks/facebookoauth/api";
 import type { FacebookPage } from "@/lib/hooks/facebookoauth/types";
 import type { FacebookPost } from "@/lib/hooks/facebook/posts/types";
 import { PostCard } from "./components/PostCard";
@@ -51,7 +50,7 @@ interface PaginationState {
 
 export default function PublishedPostsPage() {
   const [filter, setFilter] = useState("All Posts");
-  const { selectedPage, pages, setPages } = useSelectedPage();
+  const { selectedPage, pages } = useSelectedPage();
   const [selectedPageId, setSelectedPageId] = useState<string>("all");
   const [posts, setPosts] = useState<PostWithPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,26 +67,30 @@ export default function PublishedPostsPage() {
     hasPrevious: false,
   });
 
-  // Sync with global selected page - if a page is selected globally, use it
-  // But only after initial load to avoid double-fetching
+  // Sync selectedPageId with global selected page (pages from workspace, no GET /facebook/pages)
   useEffect(() => {
-    if (selectedPage && hasInitialLoadedRef.current) {
+    if (selectedPage) {
       setSelectedPageId(selectedPage.page_id);
     }
   }, [selectedPage]);
 
-  // Load pages and posts - only on mount and when selectedPageId or pageSize changes
+  // On mount: load posts for selected page only, forceRefresh false (no pages/usage/profile APIs)
   useEffect(() => {
-    if (!hasInitialLoadedRef.current) {
-      hasInitialLoadedRef.current = true;
-      loadPosts();
+    if (hasInitialLoadedRef.current || pages.length === 0) return;
+    hasInitialLoadedRef.current = true;
+    const pageId = selectedPage?.page_id ?? pages[0]?.page_id;
+    if (pageId) {
+      setSelectedPageId(pageId);
+      loadPosts(false, undefined, undefined, pageId);
+    } else {
+      setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pages.length, selectedPage?.page_id, pages[0]?.page_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch when selectedPageId or pageSize changes (after initial load)
+  // Re-fetch posts when selectedPageId or pageSize changes (forceRefresh false)
   useEffect(() => {
-    if (!hasInitialLoadedRef.current) return;
-    loadPosts();
+    if (!hasInitialLoadedRef.current || pages.length === 0) return;
+    loadPosts(false);
   }, [selectedPageId, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset pagination when page selection changes
@@ -96,7 +99,12 @@ export default function PublishedPostsPage() {
     setPagination({});
   }, [selectedPageId]);
 
-  const loadPosts = async (forceRefresh: boolean = false, after?: string, before?: string) => {
+  const loadPosts = async (
+    forceRefresh: boolean = false,
+    after?: string,
+    before?: string,
+    pageIdOverride?: string,
+  ) => {
     try {
       if (forceRefresh) {
         setRefreshing(true);
@@ -105,26 +113,18 @@ export default function PublishedPostsPage() {
       }
       setError(null);
 
-      // 1. Fetch all Facebook pages - use cached version (no forceRefresh unless explicit)
-      const pagesResponse = await fetchFacebookPages();
-      if (!pagesResponse.success || !pagesResponse.pages) {
-        throw new Error("Failed to load Facebook pages");
-      }
-
-      const pagesArray = Array.isArray(pagesResponse.pages) 
-        ? pagesResponse.pages 
-        : [pagesResponse.pages];
-      setPages(pagesArray);
-
-      // Only proceed if we have a valid selectedPageId (after initial load)
-      if (!hasInitialLoadedRef.current) {
+      // Use pages from context (workspace), no GET /facebook/pages
+      const pagesArray = pages.length > 0 ? pages : [];
+      if (pagesArray.length === 0) {
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      // 2. Fetch posts based on selection
-      if (selectedPageId === "all") {
+      const effectivePageId = pageIdOverride ?? selectedPageId;
+
+      // Fetch posts for selected page (or all pages) with forceRefresh false unless user clicked Refresh
+      if (effectivePageId === "all") {
         // Load first pageSize posts from each page when "all" is selected
         const postsPromises = pagesArray.map(async (page) => {
           try {
@@ -163,7 +163,7 @@ export default function PublishedPostsPage() {
         setCurrentPagination({ hasNext: allPosts.length >= pageSize, hasPrevious: false });
       } else {
         // Load posts for selected page with pagination
-        const selectedPageObj = pagesArray.find(p => p.page_id === selectedPageId);
+        const selectedPageObj = pagesArray.find((p) => p.page_id === effectivePageId);
         if (!selectedPageObj) {
           setPosts([]);
           setLoading(false);
@@ -172,7 +172,7 @@ export default function PublishedPostsPage() {
         }
 
         const postsResponse = await fetchFacebookPosts({
-          pageId: selectedPageId,
+          pageId: effectivePageId,
           limit: pageSize,
           after: after,
           before: before,
@@ -197,9 +197,9 @@ export default function PublishedPostsPage() {
             hasPrevious: !!paging?.cursors?.before || !!paging?.previous,
           };
           setCurrentPagination(newPagination);
-          setPagination(prev => ({
+          setPagination((prev) => ({
             ...prev,
-            [selectedPageId]: newPagination,
+            [effectivePageId]: newPagination,
           }));
         } else {
           setPosts([]);

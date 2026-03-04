@@ -14,7 +14,7 @@ export default function ProfilePage() {
   const { currentWorkspace } = useWorkspaceContext();
   const workspaceProfile = currentWorkspace?.facebook_profile;
   const { profile, loading, error, loadProfile } = useFacebookUserProfile({
-    autoLoad: !workspaceProfile,
+    autoLoad: false,
     initialProfile: workspaceProfile ?? undefined,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);

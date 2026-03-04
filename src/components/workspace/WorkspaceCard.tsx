@@ -25,7 +25,7 @@ export function WorkspaceCard({
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm",
         "transition-all duration-200 hover:shadow-md hover:border-slate-300",
-        "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
       )}
     >
       <div className="h-24 shrink-0 bg-gradient-to-br from-slate-100 via-white to-primary/5" />
@@ -45,12 +45,24 @@ export function WorkspaceCard({
         </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-primary">
-            <Facebook className="h-5 w-5" aria-hidden />
-          </div>
+          {connected && workspace.facebook_profile?.profile_picture_url ? (
+            <img
+              src={workspace.facebook_profile.profile_picture_url}
+              alt={workspace.facebook_profile.name ?? "Facebook profile"}
+              className="h-10 w-10 shrink-0 rounded-full border border-slate-200 object-cover bg-white"
+              width={40}
+              height={40}
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-primary">
+              <Facebook className="h-5 w-5" aria-hidden />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-900">
-              {connected ? "Facebook connected" : "Not connected"}
+              {connected
+                ? workspace.facebook_profile?.name ?? "Facebook connected"
+                : "Not connected"}
             </p>
             <p className="text-xs text-slate-500">
               {connected ? "Connect to manage pages" : "Connect Facebook"}

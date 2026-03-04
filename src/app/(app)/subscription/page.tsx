@@ -17,7 +17,7 @@ import { useSubscription } from "@/lib/hooks/tier/useSubscription";
 import { getUserUsage, type UsageResponse } from "@/lib/hooks/tier/api";
 
 export default function SubscriptionPage() {
-  const { subscription, loading, refreshSubscription } = useSubscription('facebook');
+  const { subscription, loading, refreshSubscription } = useSubscription('facebook', { skipFetchOnMount: false });
   const [usage, setUsage] = useState<UsageResponse | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(true);
 

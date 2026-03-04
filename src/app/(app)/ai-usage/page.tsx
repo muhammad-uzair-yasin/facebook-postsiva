@@ -107,7 +107,7 @@ const UsageCard = ({ icon: Icon, title, remaining, used, isUnlimited, colorClass
 };
 
 export default function AIUsagePage() {
-  const { subscription } = useSubscription('facebook');
+  const { subscription } = useSubscription('facebook', { skipFetchOnMount: false });
   const [usage, setUsage] = useState<UsageResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

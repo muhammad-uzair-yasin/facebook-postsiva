@@ -15,11 +15,17 @@ export interface SubscriptionInfo {
   usage: UsageResponse | null;
 }
 
+export interface UseSubscriptionOptions {
+  /** When true, do not call GET /usage on mount; use only localStorage until refresh. Use in layout/sidebar so entering workspace does not trigger usage API. */
+  skipFetchOnMount?: boolean;
+}
+
 /**
  * Hook to check and manage user subscription status
- * Silently checks subscription on mount and stores in localStorage
+ * Silently checks subscription on mount and stores in localStorage (unless skipFetchOnMount).
  */
-export function useSubscription(platform: string = 'facebook') {
+export function useSubscription(platform: string = 'facebook', options: UseSubscriptionOptions = {}) {
+  const { skipFetchOnMount = true } = options;
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,11 +113,11 @@ export function useSubscription(platform: string = 'facebook') {
     }
   }, []);
 
-  // Check subscription on mount
+  // Check subscription on mount (skip when skipFetchOnMount to avoid API call on entering workspace)
   useEffect(() => {
-    if (hasLocal) return; // local-first: only hit network if no local copy
+    if (skipFetchOnMount || hasLocal) return;
     checkSubscription();
-  }, [checkSubscription, hasLocal]);
+  }, [checkSubscription, hasLocal, skipFetchOnMount]);
 
   return {
     subscription,

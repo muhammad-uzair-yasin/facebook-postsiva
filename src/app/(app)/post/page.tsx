@@ -49,7 +49,7 @@ function PostPageContent() {
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]); // For carousel
   const [selectedMediaItems, setSelectedMediaItems] = useState<MediaItem[]>([]); // For carousel preview
-  const { selectedPage, pages } = useSelectedPage();
+  const { selectedPage, setSelectedPage, pages } = useSelectedPage();
   const selectedPageId = selectedPage?.page_id || "";
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingMedia, setLoadingMedia] = useState(false);
@@ -74,6 +74,7 @@ function PostPageContent() {
   const [expandedContent, setExpandedContent] = useState<Record<string, boolean>>({});
   const [showPostingModal, setShowPostingModal] = useState(false);
   const [postingSuccess, setPostingSuccess] = useState(false);
+  const [showPublishConfirmModal, setShowPublishConfirmModal] = useState(false);
   const [showImageToContentModal, setShowImageToContentModal] = useState(false);
   const [showVideoToContentModal, setShowVideoToContentModal] = useState(false);
   const [imageToContentRequirements, setImageToContentRequirements] = useState("");
@@ -673,7 +674,7 @@ function PostPageContent() {
       return;
     }
 
-    // Show posting modal immediately
+    setShowPublishConfirmModal(false);
     setShowPostingModal(true);
     setPostingSuccess(false);
 
@@ -681,9 +682,9 @@ function PostPageContent() {
       setShowSuccess(false);
 
       if (postType === "text") {
-        // Text post
         if (!content.trim()) {
           alert("Please enter post content");
+          setShowPostingModal(false);
           return;
         }
 
@@ -691,18 +692,13 @@ function PostPageContent() {
           message: content.trim(),
           page_id: selectedPageId,
         });
-        
-        // Clear form on success
+
         setContent("");
         setShowSuccess(true);
         setPostingSuccess(true);
-        
-        // Show success message with post URL if available
         if (lastPost?.permalink_url) {
           console.log("Post published successfully:", lastPost.permalink_url);
         }
-        
-        // Close modal after showing success
         setTimeout(() => {
           setShowPostingModal(false);
           setPostingSuccess(false);
@@ -892,7 +888,7 @@ function PostPageContent() {
     <div className="p-3 sm:p-4 md:p-6 lg:p-8 min-h-screen">
       <div className="mb-6 sm:mb-8 md:mb-10">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-2 tracking-tight">Create Post</h1>
-        <p className="text-xs sm:text-sm text-slate-500 font-bold">Compose and publish to your Facebook pages</p>
+        <p className="text-xs sm:text-sm text-slate-500 font-bold">Compose and publish to your Facebook page(s)</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8 lg:gap-10 items-start">
@@ -900,7 +896,7 @@ function PostPageContent() {
         <div className="space-y-4 sm:space-y-6 md:space-y-8">
           <section>
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4 ml-1">Select Post Type</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
               {postTypes.map((type) => {
                 const isActive = postType === type.id;
                 return (
@@ -952,295 +948,154 @@ function PostPageContent() {
             </div>
           </section>
 
-          {/* AI Assistant Section */}
-          {!postType.startsWith("story_") && (
-            <section className="space-y-4">
-              <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-white">AI Assistant</h3>
-                      <p className="text-[10px] sm:text-xs text-white/80 font-medium">Generate complete posts with AI</p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => setShowGenerateIdeaModal(true)}
-                    disabled={!selectedPageId || contentGeneratorWithImage.loading}
-                    className="bg-white text-primary hover:bg-white/90 font-black rounded-xl h-9 sm:h-10 px-4 sm:px-6 gap-2 shadow-lg text-xs sm:text-sm w-full sm:w-auto"
-                  >
-                    {contentGeneratorWithImage.loading ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Generate Post
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {!postType.startsWith("story_") && (
-            <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+          {/* Caption / Post Content — same layout as LinkedIn/Instagram; shown for all post types */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between mb-3 ml-1">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 {postType === "text" ? "Post Content" : "Caption"}
               </h3>
-              <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-4 md:p-6 lg:p-8 shadow-2xl shadow-primary/5 border border-slate-100">
-                <div className="relative">
-                  <Textarea 
-                    placeholder={postType === "text" ? "What do you want to share?" : "Add a caption for your post..."}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className={cn(
-                      "text-sm sm:text-base md:text-lg border-none focus-visible:ring-0 p-2 sm:p-3 md:p-4 resize-none transition-all",
-                      expandedContent['main'] ? "min-h-[120px] sm:min-h-[150px] md:min-h-[180px]" : content.length > 500 ? "min-h-[120px] sm:min-h-[150px] md:min-h-[180px] max-h-[200px] sm:max-h-[250px] md:max-h-[300px]" : "min-h-[120px] sm:min-h-[150px] md:min-h-[180px]"
-                    )}
-                    style={{
-                      maxHeight: !expandedContent['main'] && content.length > 500 ? '200px' : 'none',
-                      overflowY: !expandedContent['main'] && content.length > 500 ? 'auto' : 'visible'
-                    }}
-                  />
-                  {content.length > 500 && (
-                    <button
-                      onClick={() => setExpandedContent(prev => ({ ...prev, main: !prev['main'] }))}
-                      className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 text-[10px] sm:text-xs font-black text-primary hover:underline bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-sm"
-                    >
-                      {expandedContent['main'] ? 'See less' : 'See more'}
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-100">
-                  <span className="text-[9px] sm:text-[10px] font-black text-slate-300 tracking-widest uppercase">{content.length}/3000 characters</span>
-                  <Button 
-                    variant="ghost" 
-                    className="text-primary gap-1.5 font-bold rounded-xl h-8 sm:h-9 text-[10px] sm:text-xs px-3 sm:px-4 w-full sm:w-auto"
-                    onClick={() => setShowAIModal(true)}
-                    disabled={!selectedPageId || contentEnhancer.loading || !content.trim()}
-                  >
-                    {contentEnhancer.loading ? (
-                      <>
-                        <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
-                        Enhancing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        AI Assist
-                      </>
-                    )}
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => setShowGenerateIdeaModal(true)} disabled={!selectedPageId || contentGeneratorWithImage.loading}>
+                    {contentGeneratorWithImage.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Idea to post
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => setShowAIModal(true)} disabled={!selectedPageId || contentEnhancer.loading || !content.trim()}>
+                    {contentEnhancer.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Enhance
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => setShowImageToContentModal(true)} disabled={!selectedPageId || imageToContentGenerator.loading || !selectedMediaId || !previewUrls[0] || (postType !== "image" && postType !== "carousel")}>
+                    {imageToContentGenerator.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                    From image
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => setShowVideoToContentModal(true)} disabled={!selectedPageId || videoToContentGenerator.loading || !selectedMediaId || !previewUrls[0] || postType !== "video"}>
+                    {videoToContentGenerator.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <VideoIcon className="w-3.5 h-3.5" />}
+                    From video
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => setShowGenerateImageModal(true)} disabled={!selectedPageId || imageGenerator.loading}>
+                    {imageGenerator.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                    Generate image
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg gap-1.5 text-xs font-bold" onClick={() => previewUrls[0] && handleSelectImageForEdit(previewUrls[0])} disabled={!selectedPageId || imageEditor.loading || !selectedMediaId || !previewUrls[0] || (postType !== "image" && postType !== "carousel")}>
+                    {imageEditor.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                    Edit image
                   </Button>
                 </div>
               </div>
+              <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-slate-100">
+                <Textarea
+                  placeholder={postType === "text" ? "What do you want to share?" : "Add a caption for your post..."}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="text-sm sm:text-base md:text-lg border-none focus-visible:ring-0 p-2 resize-none min-h-[120px] md:min-h-[150px]"
+                />
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <span className="text-[9px] sm:text-[10px] font-black text-slate-300 tracking-widest uppercase">{content.length}/3000 characters</span>
+                </div>
+              </div>
             </section>
-          )}
 
-          {(postType !== "text") && (
+          {/* Media — only when post type is not text; Storage + Upload cards */}
+          {postType !== "text" && (
             <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Media Upload</h3>
-              
-              {/* AI Image Generation Button - Show for carousel and photo post types */}
-              {(postType === "carousel" || postType === "image") && (
-                <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-black text-white">AI Image Generator</h3>
-                        <p className="text-[10px] sm:text-xs text-white/80 font-medium">Generate or edit images with AI</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button
-                        onClick={() => setShowGenerateImageModal(true)}
-                        disabled={!selectedPageId || imageGenerator.loading}
-                        className="bg-white text-primary hover:bg-white/90 font-black rounded-xl h-9 sm:h-10 px-3 sm:px-4 gap-2 shadow-lg text-[10px] sm:text-xs flex-1 sm:flex-initial"
-                      >
-                        {imageGenerator.loading ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            Generate Image
-                          </>
-                        )}
-                      </Button>
-                      {previewUrls.length > 0 && previewUrls[0] && selectedMediaId && (
-                        <>
-                          <Button
-                            onClick={() => handleSelectImageForEdit(previewUrls[0])}
-                            disabled={!selectedPageId || imageEditor.loading}
-                            className="bg-white/20 text-white hover:bg-white/30 font-black rounded-xl h-9 sm:h-10 px-3 sm:px-4 gap-2 border border-white/30 text-[10px] sm:text-xs"
-                          >
-                            {imageEditor.loading ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                                Editing...
-                              </>
-                            ) : (
-                              <>
-                                <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                Edit Image
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            onClick={() => setShowImageToContentModal(true)}
-                            disabled={!selectedPageId || imageToContentGenerator.loading}
-                            className="bg-white/20 text-white hover:bg-white/30 font-black rounded-xl h-9 sm:h-10 px-3 sm:px-4 gap-2 border border-white/30 text-[10px] sm:text-xs"
-                          >
-                            {imageToContentGenerator.loading ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                                Generating...
-                              </>
-                            ) : (
-                              <>
-                                <Type className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                Image to Content
-                              </>
-                            )}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* AI Video to Content Button - Show for video post type */}
-              {postType === "video" && previewUrls.length > 0 && selectedMediaId && (
-                <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                        <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-black text-white">AI Content Generator</h3>
-                        <p className="text-[10px] sm:text-xs text-white/80 font-medium">Generate content from your video</p>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => setShowVideoToContentModal(true)}
-                      disabled={!selectedPageId || videoToContentGenerator.loading}
-                      className="bg-white text-primary hover:bg-white/90 font-black rounded-xl h-9 sm:h-10 px-3 sm:px-4 gap-2 shadow-lg text-[10px] sm:text-xs w-full sm:w-auto"
-                    >
-                      {videoToContentGenerator.loading ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          Video to Content
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Media</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <button 
+                <button
+                  type="button"
                   onClick={() => setShowStorageModal(true)}
-                  className="flex items-center gap-3 sm:gap-4 h-28 sm:h-32 px-4 sm:px-6 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 font-bold hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                  className="flex items-center gap-3 sm:gap-4 h-28 sm:h-32 px-4 sm:px-6 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 font-bold hover:border-primary/50 hover:bg-primary/5 transition-all text-left w-full"
                 >
-                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center border border-slate-100 shadow-sm shrink-0">
-                    <Database className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-primary" />
-                   </div>
-                   <div className="text-left">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center border border-slate-100 shadow-sm shrink-0">
+                    <Database className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
+                  </div>
+                  <div className="text-left">
                     <p className="font-black text-slate-900 text-xs sm:text-sm">Storage</p>
                     <p className="text-[9px] sm:text-[10px] text-slate-400">Select from media</p>
-                   </div>
+                  </div>
                 </button>
-                
-                <div 
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative h-28 sm:h-32 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 group hover:border-primary transition-all overflow-hidden cursor-pointer"
+                  onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                  className="relative h-28 sm:h-32 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 hover:border-primary transition-all overflow-hidden cursor-pointer"
                 >
-                  <input 
+                  <input
                     ref={fileInputRef}
-                    type="file" 
+                    type="file"
                     className="hidden"
                     onChange={handleFileChange}
                     multiple={postType === "carousel"}
                     accept={postType.includes("video") ? "video/*" : "image/*"}
                   />
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/5 rounded-xl sm:rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/5 rounded-xl sm:rounded-2xl flex items-center justify-center text-primary shrink-0">
                     <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div className="text-left">
                     <p className="font-black text-slate-900 text-xs sm:text-sm">Click to upload</p>
-                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">{postType.includes('video') ? 'MP4 / WEBM' : 'JPG, PNG, GIF'}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">{postType.includes("video") ? "MP4 / WEBM" : "JPG, PNG, GIF"}</p>
                   </div>
                 </div>
               </div>
             </section>
           )}
 
-          {/* Page selector removed - now using global page selector in header */}
-          {!selectedPageId && (
-            <div className="w-full bg-yellow-50 border-2 border-yellow-200 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 flex items-start sm:items-center gap-2 sm:gap-3">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 shrink-0 mt-0.5 sm:mt-0" />
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-yellow-800">No page selected</p>
-                <p className="text-[10px] sm:text-xs text-yellow-600">Please select a Facebook page from the header above</p>
-              </div>
-            </div>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border-2 border-red-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2"
+            >
+              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-red-700">{error}</span>
+            </motion.div>
           )}
+          {showSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-green-50 border-2 border-green-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-green-700">Post published successfully!</span>
+              {lastPost?.permalink_url && (
+                <a href={lastPost.permalink_url} target="_blank" rel="noopener noreferrer" className="ml-auto text-[10px] sm:text-xs font-bold text-green-600 hover:underline">
+                  View Post →
+                </a>
+              )}
+            </motion.div>
+          )}
+
+          {/* Post to — checkboxes for page(s) */}
+          <section className="space-y-3">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Post to</h3>
+            <div className="flex flex-wrap gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
+              {pages.map((page) => (
+                <label key={page.page_id} className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedPage?.page_id === page.page_id}
+                    onChange={() => setSelectedPage(selectedPage?.page_id === page.page_id ? null : page)}
+                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-slate-700">{page.page_name ?? page.page_vanity_name ?? page.page_id}</span>
+                </label>
+              ))}
+            </div>
+            {!selectedPageId && (
+              <p className="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Select at least one page to publish.
+              </p>
+            )}
+          </section>
 
           <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-end">
             <section className="w-full md:w-auto space-y-3 sm:space-y-4">
-              {showSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-green-50 border-2 border-green-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold text-green-700">Post published successfully!</span>
-                  {lastPost?.permalink_url && (
-                    <a 
-                      href={lastPost.permalink_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="ml-auto text-[10px] sm:text-xs font-bold text-green-600 hover:underline"
-                    >
-                      View Post →
-                    </a>
-                  )}
-                </motion.div>
-              )}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-50 border-2 border-red-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2"
-                >
-                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold text-red-700">{error}</span>
-                </motion.div>
-              )}
-              <Button 
+              <Button
                 className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl text-sm sm:text-base font-black gap-2 sm:gap-3 shadow-xl shadow-primary/20 px-6 sm:px-10 disabled:opacity-50"
-                onClick={handlePost}
+                onClick={() => setShowPublishConfirmModal(true)}
                 disabled={
-                  loading || 
-                  !selectedPageId || 
+                  loading ||
+                  !selectedPageId ||
                   (postType === "text" && !content.trim()) ||
                   (postType === "image" && !selectedMediaId) ||
                   (postType === "video" && !selectedMediaId) ||
@@ -2351,6 +2206,47 @@ function PostPageContent() {
                     )}
                   </Button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Publish confirmation modal */}
+      <AnimatePresence>
+        {showPublishConfirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[240] flex items-center justify-center p-4"
+            onClick={() => setShowPublishConfirmModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 shadow-xl"
+            >
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2">Post to Facebook</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                {selectedPage ? (selectedPage.page_name ?? selectedPage.page_vanity_name ?? selectedPage.page_id) : "No page selected"}
+              </p>
+              <p className="text-sm text-slate-500 mb-6">Do you want to continue?</p>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowPublishConfirmModal(false)} className="rounded-xl">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowPublishConfirmModal(false);
+                    handlePost();
+                  }}
+                  className="rounded-xl gap-2"
+                >
+                  OK
+                </Button>
               </div>
             </motion.div>
           </motion.div>
