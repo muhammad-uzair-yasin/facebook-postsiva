@@ -54,6 +54,7 @@ function PostPageContent() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [storageMedia, setStorageMedia] = useState<any[]>([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
@@ -554,12 +555,13 @@ function PostPageContent() {
         
         // Upload the file and get media_id
         if (files.length > 0) {
+          setUploading(true);
+          setUploadProgress(0);
           try {
             const file = files[0];
             const isVideo = file.type.startsWith('video/');
             const mediaType = isVideo ? 'video' : 'image';
-            
-            setUploadProgress(0);
+
             const result = await uploadMedia({
               media: file,
               media_type: mediaType,
@@ -584,6 +586,7 @@ function PostPageContent() {
             console.error("Failed to upload file:", err);
             alert("Failed to upload file. Please try again.");
           } finally {
+            setUploading(false);
             setUploadProgress(0);
           }
         }
@@ -1020,9 +1023,12 @@ function PostPageContent() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => fileInputRef.current?.click()}
-                  onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-                  className="relative h-28 sm:h-32 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 hover:border-primary transition-all overflow-hidden cursor-pointer"
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  onKeyDown={(e) => e.key === "Enter" && !uploading && fileInputRef.current?.click()}
+                  className={cn(
+                    "relative h-28 sm:h-32 rounded-xl sm:rounded-[2rem] border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 transition-all overflow-hidden",
+                    uploading ? "cursor-not-allowed opacity-70" : "hover:border-primary cursor-pointer"
+                  )}
                 >
                   <input
                     ref={fileInputRef}
@@ -1031,13 +1037,14 @@ function PostPageContent() {
                     onChange={handleFileChange}
                     multiple={postType === "carousel"}
                     accept={postType.includes("video") ? "video/*" : "image/*"}
+                    disabled={uploading}
                   />
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/5 rounded-xl sm:rounded-2xl flex items-center justify-center text-primary shrink-0">
-                    <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
+                    {uploading ? <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" /> : <Upload className="w-5 h-5 sm:w-6 sm:h-6" />}
                   </div>
                   <div className="text-left">
-                    <p className="font-black text-slate-900 text-xs sm:text-sm">Click to upload</p>
-                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">{postType.includes("video") ? "MP4 / WEBM" : "JPG, PNG, GIF"}</p>
+                    <p className="font-black text-slate-900 text-xs sm:text-sm">{uploading ? "Uploading…" : "Click to upload"}</p>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">{uploading ? "Please wait" : postType.includes("video") ? "MP4 / WEBM" : "JPG, PNG, GIF"}</p>
                   </div>
                 </div>
               </div>

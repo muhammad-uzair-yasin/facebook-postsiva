@@ -932,24 +932,28 @@ export default function ScheduledPage() {
                              </div>
                           </button>
                           
-                          <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="relative h-28 sm:h-32 rounded-xl sm:rounded-4xl border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 group hover:border-primary transition-all overflow-hidden cursor-pointer"
+                          <div
+                            onClick={() => !loadingMedia && fileInputRef.current?.click()}
+                            className={cn(
+                              "relative h-28 sm:h-32 rounded-xl sm:rounded-4xl border-2 border-dashed border-slate-200 bg-white flex items-center px-4 sm:px-6 gap-3 sm:gap-4 transition-all overflow-hidden",
+                              loadingMedia ? "cursor-not-allowed opacity-70" : "group hover:border-primary cursor-pointer"
+                            )}
                           >
-                            <input 
+                            <input
                               ref={fileInputRef}
-                              type="file" 
+                              type="file"
                               className="hidden"
                               onChange={handleFileChange}
                               multiple={postType === "carousel"}
                               accept={postType.includes("video") ? "video/*" : "image/*"}
+                              disabled={loadingMedia}
                             />
                             <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                              <Upload className="w-6 h-6" />
+                              {loadingMedia ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
                             </div>
                             <div className="text-left">
-                              <p className="font-black text-slate-900 text-sm">Click to upload</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{postType.includes('video') ? 'MP4 / WEBM' : 'JPG, PNG, GIF'}</p>
+                              <p className="font-black text-slate-900 text-sm">{loadingMedia ? "Uploading…" : "Click to upload"}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{loadingMedia ? "Please wait" : postType.includes("video") ? "MP4 / WEBM" : "JPG, PNG, GIF"}</p>
                             </div>
                           </div>
                         </div>
