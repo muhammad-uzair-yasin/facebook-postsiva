@@ -9,7 +9,6 @@ import { loginRequest, fetchCurrentUser, logoutRequest, AUTH_USER_CACHE_KEY, CAC
 import { fetchFacebookToken } from '../facebook/token/api';
 import type { AuthUser, LoginPayload } from './types';
 import { STORAGE_KEYS } from '../../config';
-import { getUserUsage } from '../tier/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -90,28 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await loginRequest(payload);
       setUser(data.user);
       setCachedValue(AUTH_USER_CACHE_KEY, data.user, CACHE_TTL_MS);
-
-      // Silently check subscription status
-      try {
-        const usageResponse = await getUserUsage('facebook');
-        if (usageResponse.success && usageResponse.usage) {
-          const usage = usageResponse.usage;
-          const isPaid = usage.current_tier_name !== 'free';
-          const subscriptionInfo = {
-            platform: 'facebook',
-            tier_name: usage.current_tier_name,
-            is_paid: isPaid,
-            is_unlimited: usage.is_unlimited,
-            credits_expire_at: usage.credits_expire_at,
-            is_expired: usage.is_expired,
-            usage,
-          };
-          localStorage.setItem('postsiva_subscription', JSON.stringify(subscriptionInfo));
-        }
-      } catch (err) {
-        console.debug('Subscription check failed:', err);
-      }
-
       router.push('/select-workspace');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
