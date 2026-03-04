@@ -18,9 +18,12 @@ interface AuthContextType {
   isHydrated: boolean;
   error: string | null;
   hasFacebookToken: boolean;
+  facebookTokenChecked: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   checkFacebookToken: (forceRefresh?: boolean) => Promise<boolean>;
+  /** Set token status from workspace (e.g. login response) to skip GET /facebook/get-token. */
+  setFacebookTokenFromWorkspace: (connected: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFacebookToken, setHasFacebookToken] = useState(false);
+  const [facebookTokenChecked, setFacebookTokenChecked] = useState(false);
 
   // Hydrate session from localStorage on mount (runs once)
   useEffect(() => {
@@ -91,15 +95,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkFacebookTokenStatus = useCallback(async (forceRefresh?: boolean): Promise<boolean> => {
     try {
-      // Use cached API call instead of direct fetch - will return from localStorage if available
       const res = await fetchFacebookToken({ forceRefresh });
       const hasFbToken = res.success === true && res.data && Object.keys(res.data).length > 0;
       setHasFacebookToken(hasFbToken);
+      setFacebookTokenChecked(true);
       return hasFbToken;
     } catch {
       setHasFacebookToken(false);
+      setFacebookTokenChecked(true);
       return false;
     }
+  }, []);
+
+  const setFacebookTokenFromWorkspace = useCallback((connected: boolean) => {
+    setHasFacebookToken(connected);
+    setFacebookTokenChecked(true);
   }, []);
 
   const login = useCallback(async (payload: LoginPayload) => {
@@ -173,9 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isHydrated,
     error,
     hasFacebookToken,
+    facebookTokenChecked,
     login,
     logout,
     checkFacebookToken: checkFacebookTokenStatus,
+    setFacebookTokenFromWorkspace,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

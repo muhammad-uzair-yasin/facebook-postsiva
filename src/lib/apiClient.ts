@@ -1,10 +1,12 @@
 import { API_BASE_URL, STORAGE_KEYS, buildApiUrl } from './config';
+import { setWorkspacesCache } from './workspaceCache';
 
 // Re-export for backward compatibility
 export { API_BASE_URL };
 
 export const ACCESS_TOKEN_KEY = STORAGE_KEYS.ACCESS_TOKEN;
 export const USER_INFO_KEY = STORAGE_KEYS.USER_INFO;
+export const WORKSPACE_ID_KEY = 'postsiva_current_workspace_id';
 
 // Request deduplication: prevent duplicate concurrent requests
 const pendingRequests = new Map<string, Promise<unknown>>();
@@ -97,10 +99,16 @@ async function doRefreshAndRetry<T>(
     const msg = (await refreshRes.json().catch(() => ({})) as { detail?: string })?.detail ?? 'Session expired. Please log in again.';
     throw new Error(msg);
   }
-  const data = (await refreshRes.json()) as { access_token: string; refresh_token?: string; user?: unknown };
+  const data = (await refreshRes.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    user?: unknown;
+    workspaces?: unknown[];
+  };
   setAccessToken(data.access_token);
   if (data.refresh_token) setRefreshToken(data.refresh_token);
   if (data.user) setUserInfo(data.user);
+  if (Array.isArray(data.workspaces)) setWorkspacesCache(data.workspaces);
   return apiFetch<T>(path, options, { withAuth: true, _internalRetried: true });
 }
 
@@ -128,6 +136,10 @@ export async function apiFetch<T>(
   if (withAuth) {
     const token = getAccessToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+    if (typeof window !== 'undefined') {
+      const workspaceId = localStorage.getItem(WORKSPACE_ID_KEY);
+      if (workspaceId) headers.set('X-Workspace-Id', workspaceId);
+    }
   }
 
   const controller = new AbortController();
