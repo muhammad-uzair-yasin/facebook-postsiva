@@ -189,7 +189,7 @@ export async function uploadMedia(params: UploadMediaParams): Promise<MediaUploa
   const useChunked =
     params.media_type !== 'images' &&
     file &&
-    (file as File).size >= CHUNKED_THRESHOLD;
+    ((file as File).size >= CHUNKED_THRESHOLD || params.media_type === 'video');
 
   if (useChunked && file) {
     const f = file as File;
