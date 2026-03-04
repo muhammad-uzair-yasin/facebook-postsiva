@@ -1,13 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { clearCachedValue } from '../../cache';
-import { AUTH_USER_CACHE_KEY } from './api';
+import { clearCachedValue, setCachedValue } from '../../cache';
 import { getRefreshToken } from '../../apiClient';
 import { clearSessionData } from '../../auth-helpers';
 import { useRouter } from 'next/navigation';
 import { loginRequest, fetchCurrentUser, logoutRequest, AUTH_USER_CACHE_KEY, CACHE_TTL_MS } from './api';
-import { setCachedValue } from '../../cache';
 import { fetchFacebookToken } from '../facebook/token/api';
 import type { AuthUser, LoginPayload } from './types';
 import { STORAGE_KEYS } from '../../config';
@@ -38,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasFacebookToken, setHasFacebookToken] = useState(false);
   const [facebookTokenChecked, setFacebookTokenChecked] = useState(false);
 
-  // Hydrate session from localStorage on mount (runs once)
+  // Hydrate session from localStorage on mount (runs once). Token status is set when WorkspaceContext sets currentWorkspace (from workspace.facebook_connected or get-token when workspace selected), like Instagram.
   useEffect(() => {
     const initializeSession = async () => {
       try {
@@ -50,41 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Verify token is still valid by fetching user
         const currentUser = await fetchCurrentUser();
         setUser(currentUser);
-
-        // Check if Facebook token exists
-        const hasFbToken = await checkFacebookTokenStatus();
-        setHasFacebookToken(hasFbToken);
-
-        // Silently check subscription status
-        try {
-          const usageResponse = await getUserUsage('facebook');
-          if (usageResponse.success && usageResponse.usage) {
-            const usage = usageResponse.usage;
-            const isPaid = usage.current_tier_name !== 'free';
-            const subscriptionInfo = {
-              platform: 'facebook',
-              tier_name: usage.current_tier_name,
-              is_paid: isPaid,
-              is_unlimited: usage.is_unlimited,
-              credits_expire_at: usage.credits_expire_at,
-              is_expired: usage.is_expired,
-              usage,
-            };
-            localStorage.setItem('postsiva_subscription', JSON.stringify(subscriptionInfo));
-          }
-        } catch (err) {
-          // Silently fail - subscription check is not critical for login
-          console.debug('Subscription check failed:', err);
-        }
       } catch (err) {
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_INFO);
         setUser(null);
-        setHasFacebookToken(false);
       } finally {
         setIsHydrated(true);
         setIsLoading(false);
