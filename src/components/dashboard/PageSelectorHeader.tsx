@@ -9,6 +9,7 @@ import { WHATSAPP_BUSINESS_NUMBER } from "@/lib/config";
 import type { FacebookPage } from "@/lib/hooks/facebookoauth/types";
 import { useSelectedPage } from "@/lib/hooks/facebook/selectedPage/SelectedPageContext";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
+import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 import { useFacebookUserProfile } from "@/lib/hooks/facebook/userProfile/useFacebookUserProfile";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +18,12 @@ import Image from "next/image";
 export function PageSelectorHeader() {
   const { selectedPage, setSelectedPage, pages, setPages, loading, setLoading } = useSelectedPage();
   const { user, checkFacebookToken } = useAuthContext();
-  const { profile } = useFacebookUserProfile({ autoLoad: true });
+  const { currentWorkspace } = useWorkspaceContext();
+  const workspaceProfile = currentWorkspace?.facebook_profile;
+  const { profile } = useFacebookUserProfile({
+    autoLoad: !workspaceProfile,
+    initialProfile: workspaceProfile ?? undefined,
+  });
   const router = useRouter();
   const [showPageDropdown, setShowPageDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);

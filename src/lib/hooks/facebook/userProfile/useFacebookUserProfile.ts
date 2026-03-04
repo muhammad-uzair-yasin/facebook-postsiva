@@ -6,8 +6,17 @@ import {
   initialFacebookUserProfileState,
 } from './reducers';
 import { fetchFacebookUserProfile } from './api';
+import type { FacebookUserProfile } from './types';
 
-export function useFacebookUserProfile({ autoLoad = true } = {}) {
+export interface UseFacebookUserProfileOptions {
+  /** When true, fetch profile on mount. Skip when initialProfile is provided. */
+  autoLoad?: boolean;
+  /** Initial profile from workspace (login response); skips GET on load when set. */
+  initialProfile?: FacebookUserProfile | null;
+}
+
+export function useFacebookUserProfile(options: UseFacebookUserProfileOptions = {}) {
+  const { autoLoad = true, initialProfile } = options;
   const [state, dispatch] = useReducer(
     facebookUserProfileReducer,
     initialFacebookUserProfileState,
@@ -19,15 +28,13 @@ export function useFacebookUserProfile({ autoLoad = true } = {}) {
       try {
         const res = await fetchFacebookUserProfile(refresh);
         if (!res.success) {
-          throw new Error(res.error || res.message || 'Failed to load Facebook profile');
+          throw new Error(res.error || res.message ?? 'Failed to load Facebook profile');
         }
         dispatch({ type: 'FB_PROFILE_SUCCESS', payload: res.profile });
         return res;
-      } catch (err: any) {
-        dispatch({
-          type: 'FB_PROFILE_ERROR',
-          payload: err.message ?? 'Failed to load Facebook profile',
-        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load Facebook profile';
+        dispatch({ type: 'FB_PROFILE_ERROR', payload: message });
         throw err;
       }
     },
@@ -35,9 +42,15 @@ export function useFacebookUserProfile({ autoLoad = true } = {}) {
   );
 
   useEffect(() => {
-    if (!autoLoad) return;
+    if (initialProfile != null) {
+      dispatch({ type: 'FB_PROFILE_SUCCESS', payload: initialProfile as FacebookUserProfile });
+    }
+  }, [initialProfile]);
+
+  useEffect(() => {
+    if (!autoLoad || initialProfile != null) return;
     loadProfile().catch(() => undefined);
-  }, [autoLoad, loadProfile]);
+  }, [autoLoad, initialProfile, loadProfile]);
 
   return {
     ...state,

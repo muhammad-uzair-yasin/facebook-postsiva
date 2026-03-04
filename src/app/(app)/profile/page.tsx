@@ -7,10 +7,16 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useFacebookUserProfile } from "@/lib/hooks/facebook/userProfile/useFacebookUserProfile";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
+import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 
 export default function ProfilePage() {
   const { user } = useAuthContext();
-  const { profile, loading, error, loadProfile } = useFacebookUserProfile({ autoLoad: true });
+  const { currentWorkspace } = useWorkspaceContext();
+  const workspaceProfile = currentWorkspace?.facebook_profile;
+  const { profile, loading, error, loadProfile } = useFacebookUserProfile({
+    autoLoad: !workspaceProfile,
+    initialProfile: workspaceProfile ?? undefined,
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Local state for form fields

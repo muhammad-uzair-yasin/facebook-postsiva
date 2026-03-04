@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Facebook, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthContext } from '@/lib/hooks/auth/AuthContext';
+import { useWorkspaceContext } from '@/lib/hooks/workspace/WorkspaceContext';
+import { getCurrentWorkspaceId } from '@/lib/hooks/workspace/api';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { API_ENDPOINTS, buildApiUrl, STORAGE_KEYS } from '@/lib/config';
@@ -13,6 +15,7 @@ import { clearSessionData } from '@/lib/auth-helpers';
 export default function FacebookConnectPage() {
   const router = useRouter();
   const { user, isHydrated, hasFacebookToken, isLoading, checkFacebookToken, logout } = useAuthContext();
+  const { currentWorkspace } = useWorkspaceContext();
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -60,15 +63,15 @@ export default function FacebookConnectPage() {
         return;
       }
 
-      // Get Facebook OAuth URL from backend
+      const workspaceId = currentWorkspace?.id ?? getCurrentWorkspaceId();
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${accessToken}`,
+      };
+      if (workspaceId) headers['X-Workspace-Id'] = workspaceId;
+
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.OAUTH.FACEBOOK_CREATE_TOKEN),
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { method: 'POST', headers }
       );
 
       if (!response.ok) {
@@ -292,19 +295,25 @@ export default function FacebookConnectPage() {
             <p className="text-sm text-slate-600">
               Logged in as: <span className="font-bold text-slate-900">{user?.email}</span>
             </p>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                // Clear all session data
-                clearSessionData();
-
-                // Call logout to clear context state and redirect
-                logout();
-              }}
-              className="text-xs font-bold text-primary hover:underline cursor-pointer transition-colors hover:text-primary/80"
-            >
-              Use a different account
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/select-workspace"
+                className="text-xs font-bold text-primary hover:underline cursor-pointer transition-colors hover:text-primary/80"
+              >
+                Switch workspace
+              </Link>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  clearSessionData();
+                  logout();
+                }}
+                className="text-xs font-bold text-primary hover:underline cursor-pointer transition-colors hover:text-primary/80"
+              >
+                Use a different account
+              </button>
+            </div>
           </motion.div>
 
           {/* Security Note */}
