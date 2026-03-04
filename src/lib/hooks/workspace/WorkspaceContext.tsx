@@ -59,17 +59,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           applyTokenStatusForWorkspace(workspace);
         } else {
           setCurrentWorkspaceId(null);
-          if (data.length > 0) {
-            setCurrentWorkspaceState(data[0]);
-            setCurrentWorkspaceId(data[0].id);
-            applyTokenStatusForWorkspace(data[0]);
-          }
+          // Leave currentWorkspace null so user is sent to select-workspace
         }
-      } else if (data.length > 0) {
-        setCurrentWorkspaceState(data[0]);
-        setCurrentWorkspaceId(data[0].id);
-        applyTokenStatusForWorkspace(data[0]);
       }
+      // When no stored id: leave currentWorkspace null so user stays on select-workspace
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load workspaces");
     } finally {
