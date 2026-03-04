@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
+import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 import { SelectedPageProvider } from "@/lib/hooks/facebook/selectedPage/SelectedPageContext";
 
 export default function AppLayout({
@@ -15,15 +16,31 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isHydrated, isLoading } = useAuthContext();
+  const { user, isHydrated, isLoading, hasFacebookToken, facebookTokenChecked } = useAuthContext();
+  const { currentWorkspace, isLoading: workspaceLoading } = useWorkspaceContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Protect app routes - redirect to login if not authenticated
   useEffect(() => {
     if (isHydrated && !user && !isLoading) {
-      router.push('/login');
+      router.push("/login");
+      return;
     }
-  }, [isHydrated, user, isLoading, router]);
+    if (isHydrated && user && !isLoading && !workspaceLoading && !currentWorkspace) {
+      router.push("/select-workspace");
+      return;
+    }
+    if (
+      isHydrated &&
+      user &&
+      !isLoading &&
+      !workspaceLoading &&
+      currentWorkspace &&
+      facebookTokenChecked &&
+      !hasFacebookToken
+    ) {
+      router.push("/facebook-connect");
+    }
+  }, [isHydrated, user, isLoading, workspaceLoading, currentWorkspace, hasFacebookToken, facebookTokenChecked, router]);
 
   if (!isHydrated || isLoading) {
     return (
@@ -37,7 +54,7 @@ export default function AppLayout({
   }
 
   if (!user) {
-    return null; // Will redirect via useEffect above
+    return null;
   }
 
   return (

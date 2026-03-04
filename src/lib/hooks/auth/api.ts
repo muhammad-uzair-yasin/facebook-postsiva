@@ -1,5 +1,6 @@
 import { apiFetch, setAccessToken, setUserInfo, setRefreshToken } from '../../apiClient';
 import { getCachedValue, setCachedValue } from '../../cache';
+import { setWorkspacesCache } from '../../workspaceCache';
 import { buildApiUrl } from '../../config';
 import type { LoginPayload, LoginResponse, AuthUser } from './types';
 
@@ -20,6 +21,7 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
   setAccessToken(data.access_token);
   if (data.refresh_token) setRefreshToken(data.refresh_token);
   setUserInfo(data.user);
+  if (data.workspaces?.length) setWorkspacesCache(data.workspaces);
   return data;
 }
 
@@ -120,7 +122,7 @@ export async function logoutRequest(refreshToken: string | null): Promise<void> 
 }
 
 export const AUTH_USER_CACHE_KEY = 'auth_user:v1';
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
+export const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
 
 export async function fetchCurrentUser(options?: { forceRefresh?: boolean }): Promise<AuthUser> {
   if (!options?.forceRefresh) {

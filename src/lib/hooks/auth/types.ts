@@ -28,10 +28,25 @@ export interface LoginPayload {
   password: string;
 }
 
+/** Workspace item from login/refresh (id, name, slug, facebook_connected, facebook_profile, facebook_pages, etc.). */
+export interface LoginWorkspaceItem {
+  id: string;
+  name: string;
+  slug: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+  facebook_connected?: boolean;
+  facebook_profile?: unknown;
+  facebook_pages?: unknown[];
+  member_count?: number;
+}
+
 export interface LoginResponse {
   access_token: string;
   refresh_token?: string;
   token_type: string;
   user: AuthUser;
+  workspaces?: LoginWorkspaceItem[];
 }
 

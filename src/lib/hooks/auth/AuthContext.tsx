@@ -6,7 +6,8 @@ import { AUTH_USER_CACHE_KEY } from './api';
 import { getRefreshToken } from '../../apiClient';
 import { clearSessionData } from '../../auth-helpers';
 import { useRouter } from 'next/navigation';
-import { loginRequest, fetchCurrentUser, logoutRequest } from './api';
+import { loginRequest, fetchCurrentUser, logoutRequest, AUTH_USER_CACHE_KEY, CACHE_TTL_MS } from './api';
+import { setCachedValue } from '../../cache';
 import { fetchFacebookToken } from '../facebook/token/api';
 import type { AuthUser, LoginPayload } from './types';
 import { STORAGE_KEYS } from '../../config';
@@ -116,15 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      await loginRequest(payload);
-
-      // Fetch updated user info
-      const currentUser = await fetchCurrentUser({ forceRefresh: true });
-      setUser(currentUser);
-
-      // Check Facebook token status
-      const hasFbToken = await checkFacebookTokenStatus();
-      setHasFacebookToken(hasFbToken);
+      const data = await loginRequest(payload);
+      setUser(data.user);
+      setCachedValue(AUTH_USER_CACHE_KEY, data.user, CACHE_TTL_MS);
 
       // Silently check subscription status
       try {
@@ -144,16 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('postsiva_subscription', JSON.stringify(subscriptionInfo));
         }
       } catch (err) {
-        // Silently fail - subscription check is not critical for login
         console.debug('Subscription check failed:', err);
       }
 
-      // Redirect based on Facebook token status
-      if (!hasFbToken) {
-        router.push('/facebook-connect');
-      } else {
-        router.push('/profile');
-      }
+      router.push('/select-workspace');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
@@ -161,11 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [checkFacebookTokenStatus, router]);
+  }, [router]);
 
   const logout = useCallback(async () => {
     setUser(null);
     setHasFacebookToken(false);
+    setFacebookTokenChecked(false);
     setError(null);
     const refreshToken = getRefreshToken();
     try {

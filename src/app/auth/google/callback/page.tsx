@@ -55,16 +55,7 @@ export default function GoogleCallbackPage() {
         const result = await handleGoogleCallbackFromSearch(search);
 
         if (result) {
-          // Token has been stored and Facebook token checked
-          // Ensure we never redirect to /dashboard - use /profile instead
-          let redirectPath = result.redirectPath;
-          if (redirectPath === '/dashboard' || redirectPath?.includes('/dashboard')) {
-            console.warn('Prevented redirect to /dashboard, redirecting to /profile instead');
-            redirectPath = '/profile';
-          }
-          
-          // Redirect to the appropriate page immediately
-          router.replace(redirectPath);
+          router.replace(result.redirectPath);
         } else {
           // Invalid or missing parameters
           console.error('Invalid Google OAuth callback parameters:', Object.fromEntries(params));

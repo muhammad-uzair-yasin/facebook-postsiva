@@ -14,45 +14,24 @@ import { buildGoogleOAuthLoginUrl, getFrontendCallbackUrl } from "@/lib/config";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error: authError, user, isHydrated, hasFacebookToken, checkFacebookToken } = useAuthContext();
+  const { login, isLoading, error: authError, user, isHydrated } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check authentication status and Facebook token on page load
+  // If already logged in, redirect to select-workspace
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      if (!isHydrated) {
-        setIsCheckingAuth(true);
-        return;
-      }
-
-      // If user is logged in, check Facebook token status
-      if (user) {
-        try {
-          // Ensure Facebook token status is up to date
-          const hasFbToken = await checkFacebookToken();
-          
-          // Redirect based on Facebook token status
-          if (hasFbToken) {
-            router.replace("/profile");
-          } else {
-            router.replace("/facebook-connect");
-          }
-        } catch (error) {
-          // If check fails, assume no token and redirect to connect
-          console.warn('Failed to check Facebook token, redirecting to connect:', error);
-          router.replace("/facebook-connect");
-        }
-      } else {
-        // No user logged in, stay on login page
-        setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuthStatus();
-  }, [isHydrated, user, hasFacebookToken, checkFacebookToken, router]);
+    if (!isHydrated) {
+      setIsCheckingAuth(true);
+      return;
+    }
+    if (user) {
+      router.replace("/select-workspace");
+      return;
+    }
+    setIsCheckingAuth(false);
+  }, [isHydrated, user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

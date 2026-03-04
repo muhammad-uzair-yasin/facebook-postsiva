@@ -10,12 +10,12 @@ import { Navbar } from "@/components/sections/navbar";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
-import { signupRequest, loginRequest } from "@/lib/hooks/auth/api";
+import { signupRequest } from "@/lib/hooks/auth/api";
 import { buildGoogleOAuthLoginUrl, getFrontendCallbackUrl } from "@/lib/config";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { isLoading, isHydrated, user, hasFacebookToken, checkFacebookToken } = useAuthContext();
+  const { login, isLoading, isHydrated, user } = useAuthContext();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,39 +23,18 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check authentication status and Facebook token on page load
+  // If already logged in, redirect to select-workspace
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      if (!isHydrated) {
-        setIsCheckingAuth(true);
-        return;
-      }
-
-      // If user is logged in, check Facebook token status
-      if (user) {
-        try {
-          // Ensure Facebook token status is up to date
-          const hasFbToken = await checkFacebookToken();
-          
-          // Redirect based on Facebook token status
-          if (hasFbToken) {
-            router.replace("/profile");
-          } else {
-            router.replace("/facebook-connect");
-          }
-        } catch (error) {
-          // If check fails, assume no token and redirect to connect
-          console.warn('Failed to check Facebook token, redirecting to connect:', error);
-          router.replace("/facebook-connect");
-        }
-      } else {
-        // No user logged in, stay on signup page
-        setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuthStatus();
-  }, [isHydrated, user, hasFacebookToken, checkFacebookToken, router]);
+    if (!isHydrated) {
+      setIsCheckingAuth(true);
+      return;
+    }
+    if (user) {
+      router.replace("/select-workspace");
+      return;
+    }
+    setIsCheckingAuth(false);
+  }, [isHydrated, user, router]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,13 +48,7 @@ export default function SignupPage() {
         full_name: fullName,
         password,
       });
-      await loginRequest({ email, password });
-      const hasFbToken = await checkFacebookToken();
-      if (!hasFbToken) {
-        router.push('/facebook-connect');
-      } else {
-        router.push('/profile');
-      }
+      await login({ email, password });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signup failed';
       setError(errorMessage);
