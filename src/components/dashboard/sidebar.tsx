@@ -62,6 +62,11 @@ const menuItems = [
     comingSoon: true,
   },
   {
+    title: "Comments",
+    icon: MessageSquare,
+    href: "/comments",
+  },
+  {
     title: "AI Usage",
     icon: Brain,
     href: "/ai-usage",

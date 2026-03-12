@@ -63,15 +63,16 @@ export default function SelectWorkspacePage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-slate-50 pt-24 pb-16 px-4 sm:px-6">
+      <div className="min-h-screen bg-[#F5F7FA] pt-32 pb-20 px-4 sm:px-6 relative overflow-hidden">
+        <div className="absolute inset-0 grid-bg opacity-20 -z-10" />
         <div className="mx-auto max-w-6xl">
-          <header className="mb-10 text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Select your workspace
+          <header className="mb-14 text-center">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+              Select your <span className="text-primary">workspace</span>
             </h1>
-            <p className="mt-2 text-base text-slate-600 sm:text-lg">
+            <p className="mt-3 text-sm md:text-base text-slate-600">
               You are logged in as{" "}
-              <span className="font-medium text-slate-900">{user.email}</span>.
+              <span className="font-semibold text-slate-900">{user.email}</span>.
             </p>
           </header>
 
@@ -84,7 +85,7 @@ export default function SelectWorkspacePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {workspaces.map((workspace) => (
               <WorkspaceCard
                 key={workspace.id}
@@ -101,8 +102,7 @@ export default function SelectWorkspacePage() {
               No workspaces yet. Create one from your account to get started.
             </p>
           )}
-
-          <div className="mt-12 flex justify-center">
+          <div className="mt-14 flex justify-center">
             <Button
               variant="ghost"
               className="rounded-xl text-slate-600 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900"
@@ -112,6 +112,13 @@ export default function SelectWorkspacePage() {
             </Button>
           </div>
         </div>
+
+        <style jsx global>{`
+          .grid-bg {
+            background-image: radial-gradient(#e5e7eb 0.5px, transparent 0.5px);
+            background-size: 28px 28px;
+          }
+        `}</style>
       </div>
     </>
   );

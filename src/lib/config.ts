@@ -62,6 +62,13 @@ export const API_ENDPOINTS = {
     PAGES: '/facebook/pages',
     POSTS: '/facebook/posts',
     USER_PROFILE: '/facebook/user-profile',
+    COMMENTS: {
+      LIST: '/facebook/comments',
+      REPLY: '/facebook/comments/reply',
+      HIDE: '/facebook/comments/hide',
+      UNHIDE: '/facebook/comments/unhide',
+      DELETE: '/facebook/comments/delete',
+    },
     TEXT_POST: '/facebook/text-post',
     PERSONA: {
       BUILD: '/facebook/persona/build',
