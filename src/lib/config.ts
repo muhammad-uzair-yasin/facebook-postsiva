@@ -108,6 +108,12 @@ export const API_ENDPOINTS = {
     USAGE: '/usage',
     ORDERS: '/orders',
   },
+
+  // Feedback
+  FEEDBACK: {
+    SUBMIT: '/feedback',
+    LIST: '/feedback',
+  },
 } as const;
 
 /**
