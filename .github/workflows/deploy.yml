@@ -16,7 +16,9 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd /root/facebook-postsiva-prod
+            git stash
             git pull origin master
+            git stash drop || true
             npm install
             npm run build
             pm2 restart facebook-postsiva-prod
