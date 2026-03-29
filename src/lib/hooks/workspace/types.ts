@@ -27,6 +27,8 @@ export interface Workspace {
   name: string;
   slug: string;
   owner_id: string;
+  image_url?: string | null;
+  description?: string | null;
   created_at: string;
   updated_at: string;
   facebook_connected?: boolean;
@@ -52,6 +54,7 @@ export interface WorkspaceCreateBody {
 export interface WorkspaceUpdateBody {
   name?: string | null;
   slug?: string | null;
+  description?: string | null;
 }
 
 export interface WorkspaceAddMemberBody {

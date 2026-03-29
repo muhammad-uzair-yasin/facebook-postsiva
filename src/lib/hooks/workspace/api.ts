@@ -60,11 +60,20 @@ export async function updateWorkspace(
       body: JSON.stringify({
         ...(body.name != null && { name: body.name.trim() }),
         ...(body.slug != null && { slug: body.slug.trim() }),
+        ...(body.description != null && { description: body.description.trim() }),
       }),
     },
     { withAuth: true }
   );
   return res;
+}
+
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  await apiFetch<void>(
+    `/workspaces/${encodeURIComponent(workspaceId)}`,
+    { method: "DELETE" },
+    { withAuth: true }
+  );
 }
 
 export async function listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {
