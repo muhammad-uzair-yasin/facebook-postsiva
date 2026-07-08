@@ -61,7 +61,9 @@ export const API_ENDPOINTS = {
     GET_TOKEN: '/facebook/get-token',
     PAGES: '/facebook/pages',
     POSTS: '/facebook/posts',
+    DRAFTS: '/facebook/drafts',
     USER_PROFILE: '/facebook/user-profile',
+    PAGE_INSIGHTS: '/facebook/page-insights',
     COMMENTS: {
       LIST: '/facebook/comments',
       REPLY: '/facebook/comments/reply',
@@ -69,6 +71,7 @@ export const API_ENDPOINTS = {
       UNHIDE: '/facebook/comments/unhide',
       DELETE: '/facebook/comments/delete',
     },
+    COMMENT_REPLY_GENERATE: '/facebook/comment-reply/generate',
     TEXT_POST: '/facebook/text-post',
     PERSONA: {
       BUILD: '/facebook/persona/build',
@@ -107,6 +110,17 @@ export const API_ENDPOINTS = {
     GET_TIERS: '/tiers',
     USAGE: '/usage',
     ORDERS: '/orders',
+  },
+
+  // Unified AI Watcher / Auto-replier
+  AI_WATCHER: {
+    LIST: '/unified/ai-autoreplier/list',
+    ENABLE: '/unified/ai-autoreplier/enable',
+    DISABLE: '/unified/ai-autoreplier/disable',
+    RULES: '/unified/ai-autoreplier/rules',
+    LEADS: '/unified/ai-autoreplier/leads',
+    HISTORY: '/unified/ai-autoreplier/history',
+    FORCE_RUN: '/unified/ai-autoreplier/force-run',
   },
 } as const;
 

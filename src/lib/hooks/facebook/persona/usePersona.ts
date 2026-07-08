@@ -11,6 +11,7 @@ import {
   regeneratePersona,
 } from './api';
 import type {
+  PersonaData,
   PersonaUpdateRequest,
   PersonaPatchRequest,
   PersonaRegenerateRequest,
@@ -45,18 +46,43 @@ export function usePersona() {
     try {
       const res = await getPersona(pageId, forceRefresh);
       if (!res.success) {
-        throw new Error(res.error || res.message || 'Failed to load persona');
+        const msg = res.error || res.message || '';
+        if (/not found/i.test(msg)) {
+          dispatch({
+            type: 'PERSONA_SUCCESS',
+            payload: { persona: null, personaId: res.persona_id ?? null },
+          });
+          return res;
+        }
+        throw new Error(msg || 'Failed to load persona');
       }
       dispatch({
         type: 'PERSONA_SUCCESS',
         payload: { persona: res.data, personaId: res.persona_id ?? null },
       });
       return res;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load persona';
+      dispatch({ type: 'PERSONA_ERROR', payload: message });
+      throw err;
+    }
+  }, []);
+
+  const save = useCallback(async (pageId: string, personaData: PersonaData) => {
+    dispatch({ type: 'PERSONA_START' });
+    try {
+      const res = await updatePersona(pageId, { persona_data: personaData });
+      if (!res.success) {
+        throw new Error(res.error || res.message || 'Failed to save persona');
+      }
       dispatch({
-        type: 'PERSONA_ERROR',
-        payload: err.message ?? 'Failed to load persona',
+        type: 'PERSONA_SUCCESS',
+        payload: { persona: res.data, personaId: res.persona_id ?? null },
       });
+      return res;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save persona';
+      dispatch({ type: 'PERSONA_ERROR', payload: message });
       throw err;
     }
   }, []);
@@ -157,6 +183,7 @@ export function usePersona() {
     ...state,
     build,
     load,
+    save,
     update,
     patch,
     remove,

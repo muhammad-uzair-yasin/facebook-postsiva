@@ -103,7 +103,6 @@ export default function NotFound() {
                 {[
                   { label: "Features", href: "/features" },
                   { label: "About Us", href: "/about" },
-                  { label: "Pricing", href: "/pricing" },
                   { label: "Login", href: "/login" },
                   { label: "Sign Up", href: "/signup" },
                 ].map((link, index) => (

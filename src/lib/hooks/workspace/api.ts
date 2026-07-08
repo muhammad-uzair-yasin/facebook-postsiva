@@ -1,6 +1,6 @@
 import { apiFetch, WORKSPACE_ID_KEY } from "@/lib/apiClient";
-import { getCachedValue } from "@/lib/cache";
-import { setWorkspacesCache, WORKSPACES_CACHE_KEY, WORKSPACES_TTL_MS } from "@/lib/workspaceCache";
+import { clearCachedValue, getCachedValue, setCachedValue } from "@/lib/cache";
+import { setWorkspacesCache, WORKSPACES_TTL_MS } from "@/lib/workspaceCache";
 import type {
   Workspace,
   WorkspaceMember,
@@ -8,6 +8,18 @@ import type {
   WorkspaceUpdateBody,
   WorkspaceAddMemberBody,
 } from "./types";
+
+const WORKSPACES_FB_CACHE_KEY = "workspaces_list:facebook:v1";
+
+function filterWorkspacesForFacebook(workspaces: Workspace[]): Workspace[] {
+  return workspaces.filter(
+    (w) => w.source_product === "facebook" || w.facebook_connected === true,
+  );
+}
+
+function invalidateFacebookWorkspacesCache(): void {
+  clearCachedValue(WORKSPACES_FB_CACHE_KEY);
+}
 
 export function getCurrentWorkspaceId(): string | null {
   if (typeof window === "undefined") return null;
@@ -27,12 +39,17 @@ export { setWorkspacesCache };
 export async function listWorkspaces(options?: { forceRefresh?: boolean }): Promise<Workspace[]> {
   const forceRefresh = options?.forceRefresh === true;
   if (!forceRefresh) {
-    const cached = getCachedValue<Workspace[]>(WORKSPACES_CACHE_KEY);
+    const cached = getCachedValue<Workspace[]>(WORKSPACES_FB_CACHE_KEY);
     if (cached) return cached;
   }
-  const data = await apiFetch<Workspace[]>("/workspaces", { method: "GET" }, { withAuth: true });
-  if (Array.isArray(data)) setWorkspacesCache(data);
-  return data;
+  const data = await apiFetch<Workspace[]>(
+    "/workspaces?product=facebook",
+    { method: "GET" },
+    { withAuth: true },
+  );
+  const list = Array.isArray(data) ? filterWorkspacesForFacebook(data) : [];
+  setCachedValue(WORKSPACES_FB_CACHE_KEY, list, WORKSPACES_TTL_MS);
+  return list;
 }
 
 export async function createWorkspace(body: WorkspaceCreateBody): Promise<Workspace> {
@@ -41,9 +58,23 @@ export async function createWorkspace(body: WorkspaceCreateBody): Promise<Worksp
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: body.name.trim() || "My Workspace", slug: body.slug?.trim() || undefined }),
+      body: JSON.stringify({
+        name: body.name.trim() || "My Workspace",
+        slug: body.slug?.trim() || undefined,
+        source_product: body.source_product ?? "facebook",
+      }),
     },
     { withAuth: true }
+  );
+  invalidateFacebookWorkspacesCache();
+  return res;
+}
+
+export async function getWorkspaceById(workspaceId: string): Promise<Workspace> {
+  const res = await apiFetch<Workspace>(
+    `/workspaces/${encodeURIComponent(workspaceId)}`,
+    { method: "GET" },
+    { withAuth: true },
   );
   return res;
 }
@@ -52,19 +83,63 @@ export async function updateWorkspace(
   workspaceId: string,
   body: WorkspaceUpdateBody
 ): Promise<Workspace> {
+  const payload: Record<string, string | null> = {};
+  if (body.name !== undefined) {
+    payload.name = body.name == null ? null : body.name.trim();
+  }
+  if (body.slug !== undefined) {
+    payload.slug = body.slug == null ? null : body.slug.trim();
+  }
+  if (body.description !== undefined) {
+    const trimmed = body.description == null ? null : body.description.trim();
+    payload.description = trimmed === "" ? null : trimmed;
+  }
+  if (body.image_url !== undefined) {
+    payload.image_url = body.image_url;
+  }
+
   const res = await apiFetch<Workspace>(
     `/workspaces/${encodeURIComponent(workspaceId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...(body.name != null && { name: body.name.trim() }),
-        ...(body.slug != null && { slug: body.slug.trim() }),
-      }),
+      body: JSON.stringify(payload),
     },
     { withAuth: true }
   );
+  invalidateFacebookWorkspacesCache();
   return res;
+}
+
+export async function uploadWorkspaceImage(
+  workspaceId: string,
+  file: File,
+): Promise<Workspace> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await apiFetch<Workspace>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/image`,
+    {
+      method: "POST",
+      body: form,
+      headers: {},
+    },
+    { withAuth: true },
+  );
+  invalidateFacebookWorkspacesCache();
+  return res;
+}
+
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  await apiFetch(
+    `/workspaces/${encodeURIComponent(workspaceId)}`,
+    { method: "DELETE" },
+    { withAuth: true },
+  );
+  invalidateFacebookWorkspacesCache();
+  if (getCurrentWorkspaceId() === workspaceId) {
+    setCurrentWorkspaceId(null);
+  }
 }
 
 export async function listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {

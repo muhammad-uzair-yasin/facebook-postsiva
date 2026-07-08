@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/apiClient";
+import { API_ENDPOINTS, buildApiUrl } from "@/lib/config";
 import {
   getCachedValue,
   setCachedValue,
@@ -156,6 +157,49 @@ export async function unhideFacebookComment(params: {
   if (res?.success)
     clearCachedByPrefix(`${COMMENTS_CACHE_PREFIX}${postId}:${pageId}:`);
   return res;
+}
+
+export interface GeneratedFacebookReply {
+  comment_id: string;
+  comment_text: string;
+  author_name: string;
+  generated_reply: string;
+  confidence: number;
+}
+
+export interface GenerateFacebookRepliesResponse {
+  success: boolean;
+  message: string;
+  generated_replies: GeneratedFacebookReply[];
+  total_generated: number;
+}
+
+/** Native FB API — POST /facebook/comment-reply/generate (not unified). */
+export async function generateFacebookCommentReplies(params: {
+  pageId: string;
+  postId: string;
+  comments: Array<{
+    comment_id?: string;
+    comment_text: string;
+    author_name?: string;
+  }>;
+  postContext?: string | null;
+}): Promise<GenerateFacebookRepliesResponse> {
+  const url = buildApiUrl(API_ENDPOINTS.FACEBOOK.COMMENT_REPLY_GENERATE);
+  return apiFetch<GenerateFacebookRepliesResponse>(
+    url,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        page_id: params.pageId,
+        post_id: params.postId,
+        comments: params.comments,
+        post_context: params.postContext ?? null,
+      }),
+    },
+    { withAuth: true },
+  );
 }
 
 export async function deleteFacebookComment(params: {

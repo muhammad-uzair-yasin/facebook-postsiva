@@ -1,5 +1,6 @@
 import { apiFetch } from '../../apiClient';
 import { clearCachedByPrefix, setCachedValue, getCachedValue } from '../../cache';
+import { fetchFacebookUserProfile } from '../facebook/userProfile/api';
 import type { FacebookPagesResponse } from './types';
 
 const LONG_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
@@ -40,68 +41,27 @@ export async function fetchFacebookPages(options?: { forceRefresh?: boolean }): 
     if (cached) return cached;
   }
 
-  const response = await apiFetch<any>(
-    '/facebook/pages',
-    {
-      method: 'GET',
-    },
-    { withAuth: true },
-  );
+  const profileRes = await fetchFacebookUserProfile(true, { forceRefresh: true });
+  const pagesRaw = profileRes?.pages ?? [];
+  const pagesArray = Array.isArray(pagesRaw) ? pagesRaw : pagesRaw ? [pagesRaw] : [];
 
-  // Backend structure: { success, message, data: { success, message, user_id, pages: [...], count } }
-  if (response.data) {
-    const data = response.data;
-    let pagesArray: any[] = [];
-    
-    // Extract pages array from data.pages
-    if (data.pages !== undefined) {
-      if (Array.isArray(data.pages)) {
-        pagesArray = data.pages;
-      } else if (data.pages !== null) {
-        // If it's a single page object, wrap it in an array
-        pagesArray = [data.pages];
-      }
-    }
-    
-    const normalizedResponse: FacebookPagesResponse = {
-      success: response.success && data.success !== false,
-      message: response.message || data.message || "",
-      data: data,
-      // Expose pages at root level for easier access
-      pages: pagesArray,
-      count: data.count || pagesArray.length,
-      user_id: data.user_id,
-    };
+  const pages: FacebookPagesResponse['pages'] = pagesArray
+    .map((p: { page_id?: string; id?: string; page_name?: string; name?: string }) => ({
+      page_id: String(p.page_id ?? p.id ?? ''),
+      page_name: p.page_name ?? p.name ?? undefined,
+    }))
+    .filter((p) => p.page_id);
 
-    setCachedValue(cacheKey, normalizedResponse, LONG_CACHE_TTL_MS);
-    return normalizedResponse;
-  }
-
-  // Fallback: If data is not present, check for pages at root level (legacy)
-  if (response.pages !== undefined) {
-    const pagesArray = Array.isArray(response.pages) ? response.pages : (response.pages ? [response.pages] : []);
-    const legacyResponse: FacebookPagesResponse = {
-      success: response.success || false,
-      message: response.message || "",
-      pages: pagesArray,
-      count: response.count || pagesArray.length,
-      user_id: response.user_id,
-    };
-
-    setCachedValue(cacheKey, legacyResponse, LONG_CACHE_TTL_MS);
-    return legacyResponse;
-  }
-
-  // If no pages found
-  const emptyResponse: FacebookPagesResponse = {
-    success: response.success || false,
-    message: response.message || "No pages found",
-    pages: [],
-    count: 0,
+  const normalizedResponse: FacebookPagesResponse = {
+    success: profileRes?.success !== false,
+    message: profileRes?.message || '',
+    pages,
+    count: pages.length,
+    user_id: profileRes?.profile?.facebook_user_id,
   };
 
-  setCachedValue(cacheKey, emptyResponse, LONG_CACHE_TTL_MS);
-  return emptyResponse;
+  setCachedValue(cacheKey, normalizedResponse, LONG_CACHE_TTL_MS);
+  return normalizedResponse;
 }
 
 export async function disconnectFacebook(): Promise<void> {

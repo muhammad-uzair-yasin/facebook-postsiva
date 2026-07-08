@@ -10,7 +10,13 @@ import type {
 
 // Long-lived cache; use forceRefresh to pull fresh after edits
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
-const cacheKey = (pageId: string) => `persona:v1:${pageId}`;
+const cacheKey = (pageId: string) => `persona:v2:${pageId}`;
+
+function cachePersonaResponse(pageId: string, data: PersonaResponse) {
+  if (data.success && data.data) {
+    setCachedValue(cacheKey(pageId), data, CACHE_TTL_MS);
+  }
+}
 
 export async function buildPersona(
   pageId: string,
@@ -29,6 +35,9 @@ export async function buildPersona(
     },
     { withAuth: true },
   );
+
+  clearCachedValue(cacheKey(pageId));
+  cachePersonaResponse(pageId, data);
 
   return data;
 }
@@ -55,7 +64,12 @@ export async function getPersona(
     { withAuth: true },
   );
 
-  setCachedValue(cacheKey(pageId), data, CACHE_TTL_MS);
+  // Only cache successful hits — never cache "not found" or errors
+  if (data.success && data.data) {
+    setCachedValue(cacheKey(pageId), data, CACHE_TTL_MS);
+  } else if (forceRefresh) {
+    clearCachedValue(cacheKey(pageId));
+  }
 
   return data;
 }
@@ -76,6 +90,7 @@ export async function updatePersona(
   );
 
   clearCachedValue(cacheKey(pageId));
+  cachePersonaResponse(pageId, data);
 
   return data;
 }
@@ -96,6 +111,7 @@ export async function patchPersona(
   );
 
   clearCachedValue(cacheKey(pageId));
+  cachePersonaResponse(pageId, data);
 
   return data;
 }
@@ -138,6 +154,7 @@ export async function regeneratePersona(
   );
 
   clearCachedValue(cacheKey(pageId));
+  cachePersonaResponse(pageId, data);
 
   return data;
 }

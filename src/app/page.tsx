@@ -10,7 +10,6 @@ const StandoutFeatures = dynamic(() => import("@/components/sections/standout-fe
 const PerformanceStats = dynamic(() => import("@/components/sections/performance-stats"));
 const HowItWorks = dynamic(() => import("@/components/sections/how-it-works").then(mod => ({ default: mod.HowItWorks })));
 const FAQ = dynamic(() => import("@/components/sections/faq"));
-const Pricing = dynamic(() => import("@/components/sections/pricing"));
 const Reviews = dynamic(() => import("@/components/sections/reviews"));
 const ContactUs = dynamic(() => import("@/components/sections/contact-us"));
 const Footer = dynamic(() => import("@/components/sections/footer"));
@@ -36,9 +35,6 @@ export default function Home() {
       </Suspense>
       <Suspense>
         <Reviews />
-      </Suspense>
-      <Suspense>
-        <Pricing />
       </Suspense>
       <Suspense>
         <ContactUs />

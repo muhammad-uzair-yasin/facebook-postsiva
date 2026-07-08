@@ -5,9 +5,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const { user, isHydrated, logout } = useAuthContext();
+  const isLoggedIn = isHydrated && Boolean(user);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -34,21 +37,41 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/features" className="hover:text-primary transition-colors">Features</Link>
-          <Link href="/#how-it-works" className="hover:text-primary transition-colors">How it Works</Link>
-          <Link href="/#pricing" className="hover:text-primary transition-colors">Pricing</Link>
-          <Link href="/about" className="hover:text-primary transition-colors">About Us</Link>
-          <Link href="/#contact" className="hover:text-primary transition-colors">Contact Us</Link>
-        </div>
+        {!isLoggedIn && (
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+            <Link href="/features" className="hover:text-primary transition-colors">Features</Link>
+            <Link href="/#how-it-works" className="hover:text-primary transition-colors">How it Works</Link>
+            <Link href="/about" className="hover:text-primary transition-colors">About Us</Link>
+            <Link href="/#contact" className="hover:text-primary transition-colors">Contact Us</Link>
+          </div>
+        )}
 
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
-            Log in
-          </Link>
-          <Link href="/signup">
-            <Button size="sm" className="h-9 px-4 text-xs rounded-lg bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20">Get Started</Button>
-          </Link>
+        <div className="flex items-center gap-3 sm:gap-4">
+          {isLoggedIn ? (
+            <>
+              <span className="hidden max-w-[200px] truncate text-sm font-medium text-slate-600 sm:inline">
+                {user?.email}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-9 rounded-lg px-4 text-xs font-semibold"
+                onClick={() => void logout()}
+              >
+                Log out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">
+                Log in
+              </Link>
+              <Link href="/signup">
+                <Button size="sm" className="h-9 px-4 text-xs rounded-lg bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20">Get Started</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>

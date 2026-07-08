@@ -1,28 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { 
-  User, 
-  Database, 
-  Clock, 
+import {
+  User,
   LogOut,
-  Home,
+  X,
+  MessageSquare,
+  Settings,
+  Building2,
   CheckCircle2,
   Plus,
-  Sparkles,
-  Crown,
-  ArrowUp,
-  X,
-  Brain,
-  MessageSquare,
-  Settings
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
-import { useSubscription, getStoredSubscription } from "@/lib/hooks/tier/useSubscription";
+import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
 
 const menuItems = [
   {
@@ -31,45 +25,24 @@ const menuItems = [
     href: "/profile",
   },
   {
-    title: "Published Posts",
-    icon: CheckCircle2,
-    href: "/published",
-  },
-  {
     title: "Create Post",
     icon: Plus,
-    href: "/post",
+    href: "/create",
   },
   {
-    title: "Post Storage",
-    icon: Database,
-    href: "/storage",
+    title: "Posts",
+    icon: CheckCircle2,
+    href: "/posts/published",
   },
   {
-    title: "Persona Management",
-    icon: Sparkles,
-    href: "/persona",
+    title: "AI Watcher",
+    icon: Eye,
+    href: "/ai-watcher",
   },
   {
-    title: "Scheduled Posts",
-    icon: Clock,
-    href: "/scheduled",
-  },
-  {
-    title: "AI Commenting",
+    title: "Inbox",
     icon: MessageSquare,
-    href: "#",
-    comingSoon: true,
-  },
-  {
-    title: "Comments",
-    icon: MessageSquare,
-    href: "/comments",
-  },
-  {
-    title: "AI Usage",
-    icon: Brain,
-    href: "/ai-usage",
+    href: "/inbox",
   },
   {
     title: "Settings",
@@ -85,23 +58,14 @@ interface DashboardSidebarProps {
 
 export const DashboardSidebar = ({ isOpen, setIsOpen }: DashboardSidebarProps) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { logout } = useAuthContext();
-  const { subscription } = useSubscription('facebook');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { currentWorkspace, setCurrentWorkspace } = useWorkspaceContext();
 
   const handleLogout = async () => {
     await logout();
     setIsOpen(false);
   };
-
-  // Get subscription info (from hook or localStorage)
-  const subscriptionInfo = subscription || (mounted ? getStoredSubscription() : null);
-  const isPaid = subscriptionInfo?.is_paid || false;
-  const tierName = subscriptionInfo?.tier_name || 'free';
 
   return (
     <>
@@ -136,86 +100,74 @@ export const DashboardSidebar = ({ isOpen, setIsOpen }: DashboardSidebarProps) =
           </button>
         </div>
 
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentWorkspace(null);
+            setIsOpen(false);
+            router.push("/select-workspace");
+          }}
+          className="mb-6 flex w-full items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-left transition-colors hover:bg-slate-100"
+        >
+          <Building2 className="h-5 w-5 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold uppercase tracking-wide text-slate-400">
+              Workspace
+            </p>
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {currentWorkspace?.name ?? "Switch workspace"}
+            </p>
+          </div>
+        </button>
+
         <nav className="flex-1 space-y-1">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-            const isComingSoon = (item as any).comingSoon;
-            
-            const content = (
-              <div className={cn(
-                "flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 group relative",
-                isComingSoon 
-                  ? "text-slate-400 cursor-not-allowed opacity-75" 
-                  : isActive 
-                    ? "bg-primary/10 text-primary" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              )}>
-                <item.icon className={cn(
-                  "w-5 h-5 transition-transform duration-200",
-                  isActive && !isComingSoon ? "scale-110" : "group-hover:scale-110"
-                )} />
-                <span className="font-bold text-sm flex-1">{item.title}</span>
-                {isComingSoon && (
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Soon
-                  </span>
-                )}
-                
-                {isActive && !isComingSoon && (
-                  <motion.div 
-                    layoutId="active-pill"
-                    className="absolute left-0 w-1 h-6 bg-primary rounded-r-full"
-                  />
-                )}
-              </div>
-            );
-            
-            if (isComingSoon) {
-              return (
-                <div key={item.href} className="block relative">
-                  {content}
-                </div>
-              );
-            }
-            
+            const isActive =
+              pathname === item.href ||
+              (item.href === "/posts/published" &&
+                (pathname.startsWith("/posts/published") ||
+                  pathname.startsWith("/posts/scheduled") ||
+                  pathname.startsWith("/posts/drafts"))) ||
+              (item.href === "/create" && pathname.startsWith("/create")) ||
+              (item.href === "/ai-watcher" && pathname.startsWith("/ai-watcher")) ||
+              (item.href === "/settings" && pathname.startsWith("/settings")) ||
+              (item.href === "/inbox" && (pathname === "/inbox" || pathname.startsWith("/comments")));
+
             return (
-              <Link 
-                key={item.href} 
+              <Link
+                key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
                 className="block relative"
               >
-                {content}
+                <div
+                  className={cn(
+                    "flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 group relative",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "w-5 h-5 transition-transform duration-200",
+                      isActive ? "scale-110" : "group-hover:scale-110",
+                    )}
+                  />
+                  <span className="font-bold text-sm flex-1">{item.title}</span>
+                  {isActive ? (
+                    <motion.div
+                      layoutId="active-pill"
+                      className="absolute left-0 w-1 h-6 bg-primary rounded-r-full"
+                    />
+                  ) : null}
+                </div>
               </Link>
             );
           })}
         </nav>
 
         <div className="pt-5 border-t border-slate-100 space-y-2">
-          {/* Subscription Info or Upgrade Button */}
-          {isPaid ? (
-            <Link
-              href="/subscription"
-              onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors group"
-            >
-              <Crown className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <div className="flex-1 text-left">
-                <span className="font-bold text-sm block capitalize">{tierName} Plan</span>
-                <span className="text-xs font-medium text-primary/70">Active Subscription</span>
-              </div>
-            </Link>
-          ) : (
-            <Link
-              href="/pricing"
-              onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 transition-all group shadow-lg shadow-primary/20"
-            >
-              <ArrowUp className="w-5 h-5 group-hover:translate-y-[-2px] transition-transform" />
-              <span className="font-bold text-sm">Upgrade</span>
-            </Link>
-          )}
-          
           <button 
             onClick={handleLogout}
             className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-50 transition-colors group"

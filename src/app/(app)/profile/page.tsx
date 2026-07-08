@@ -9,16 +9,20 @@ import { useFacebookUserProfile } from "@/lib/hooks/facebook/userProfile/useFace
 import type { FacebookUserProfile } from "@/lib/hooks/facebook/userProfile/types";
 import { useAuthContext } from "@/lib/hooks/auth/AuthContext";
 import { useWorkspaceContext } from "@/lib/hooks/workspace/WorkspaceContext";
+import { useSelectedPage } from "@/lib/hooks/facebook/selectedPage/SelectedPageContext";
+import { PageInsightsStats } from "@/components/profile/PageInsightsStats";
 
 export default function ProfilePage() {
   const { user } = useAuthContext();
   const { currentWorkspace } = useWorkspaceContext();
+  const { selectedPage } = useSelectedPage();
   const workspaceProfile = currentWorkspace?.facebook_profile;
   const { profile, loading, error, loadProfile } = useFacebookUserProfile({
     autoLoad: false,
     initialProfile: (workspaceProfile ?? undefined) as FacebookUserProfile | undefined,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [statsRefreshToken, setStatsRefreshToken] = useState(0);
   
   // Local state for form fields
   const [firstName, setFirstName] = useState("");
@@ -50,6 +54,7 @@ export default function ProfilePage() {
     setIsRefreshing(true);
     try {
       await loadProfile({ refresh: true });
+      setStatsRefreshToken((n) => n + 1);
     } catch (err) {
       console.error("Failed to refresh profile:", err);
     } finally {
@@ -142,22 +147,31 @@ export default function ProfilePage() {
               </div>
             </div>
             
-            {/* Account Status */}
+            {/* Account meta */}
             <div className="mt-8 pt-6 border-t border-white/20 relative z-10 space-y-3">
-              <div className="flex items-center justify-between text-white/80 text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>Member Since</span>
+              {user?.created_at ? (
+                <div className="flex items-center justify-between text-white/80 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Member since</span>
+                  </div>
+                  <span>
+                    {new Date(user.created_at).toLocaleDateString(undefined, {
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
-                <span>Jan 2024</span>
-              </div>
-              <div className="flex items-center justify-between text-white/80 text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Posts This Month</span>
+              ) : null}
+              {selectedPage ? (
+                <div className="flex items-center justify-between text-white/80 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>Active page</span>
+                  </div>
+                  <span className="truncate max-w-[140px]">{selectedPage.page_name}</span>
                 </div>
-                <span>12 / 50</span>
-              </div>
+              ) : null}
             </div>
 
             {/* Decorative elements */}
@@ -192,7 +206,16 @@ export default function ProfilePage() {
           transition={{ delay: 0.1 }}
           className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-primary/5 border border-slate-100"
         >
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-10 pb-4 border-b border-slate-100">
+          <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8 pb-4 border-b border-slate-100">
+            Page stats
+          </h2>
+          <PageInsightsStats
+            pageId={selectedPage?.page_id}
+            pageName={selectedPage?.page_name}
+            refreshToken={statsRefreshToken}
+          />
+
+          <h2 className="mt-10 text-xl md:text-2xl font-black text-slate-900 mb-6 md:mb-8 pb-4 border-b border-slate-100">
             Profile Information
           </h2>
           

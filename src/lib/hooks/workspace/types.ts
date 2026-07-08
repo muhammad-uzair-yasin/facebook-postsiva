@@ -29,6 +29,9 @@ export interface Workspace {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  image_url?: string | null;
+  description?: string | null;
+  source_product?: "facebook" | "postsiva" | null;
   facebook_connected?: boolean;
   /** From login cache or GET /workspaces; full profile when from login. */
   facebook_profile?: FacebookProfileSnippet | null;
@@ -47,11 +50,14 @@ export interface WorkspaceMember {
 export interface WorkspaceCreateBody {
   name: string;
   slug?: string | null;
+  source_product?: "facebook" | "postsiva";
 }
 
 export interface WorkspaceUpdateBody {
   name?: string | null;
   slug?: string | null;
+  description?: string | null;
+  image_url?: string | null;
 }
 
 export interface WorkspaceAddMemberBody {

@@ -79,11 +79,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#pricing" className="block w-fit text-slate-500 hover:text-primary transition-colors text-sm font-bold">
-                  Pricing Plans
-                </Link>
-              </li>
-              <li>
                 <Link href="/#reviews" className="block w-fit text-slate-500 hover:text-primary transition-colors text-sm font-bold">
                   Testimonials
                 </Link>

@@ -1,6 +1,5 @@
 import { apiFetch } from '../../apiClient';
 import { clearCachedByPrefix, getCachedValue, setCachedValue } from '../../cache';
-import { buildApiUrl } from '../../config';
 import type { ScheduledPostsResponse, GetScheduledPostsParams, ScheduledPost } from './types';
 
 interface BackendScheduledPostsResponse {
@@ -14,45 +13,40 @@ interface BackendScheduledPostsResponse {
   error?: string | null;
 }
 
-export async function getScheduledPosts(
-  params?: GetScheduledPostsParams
-): Promise<ScheduledPostsResponse> {
-  const url = buildApiUrl('/scheduled-posts/my-scheduled-posts');
+function buildListPath(params?: GetScheduledPostsParams): string {
   const queryParams = new URLSearchParams();
-  const cacheKey = `scheduled_posts:v1:${
-    params?.platform || 'all'
-  }:${params?.limit || 'default'}:${params?.offset || 0}`;
-
-  if (!params?.forceRefresh) {
-    const cached = getCachedValue<ScheduledPostsResponse>(cacheKey);
-    if (cached) return cached;
-  }
-  
-  if (params?.platform) {
-    queryParams.append('platform', params.platform);
-  }
+  queryParams.set('platform', params?.platform || 'facebook');
   if (params?.limit) {
     queryParams.append('limit', params.limit.toString());
   }
   if (params?.offset) {
     queryParams.append('offset', params.offset.toString());
   }
-  
-  const queryString = queryParams.toString();
-  const fullUrl = queryString ? `${url}?${queryString}` : url;
-  
+  const qs = queryParams.toString();
+  return `/unified/scheduled-posts${qs ? `?${qs}` : ''}`;
+}
+
+export async function getScheduledPosts(
+  params?: GetScheduledPostsParams
+): Promise<ScheduledPostsResponse> {
+  const cacheKey = `scheduled_posts:v1:${
+    params?.platform || 'facebook'
+  }:${params?.limit || 'default'}:${params?.offset || 0}`;
+
+  if (!params?.forceRefresh) {
+    const cached = getCachedValue<ScheduledPostsResponse>(cacheKey);
+    if (cached) return cached;
+  }
+
   const response = await apiFetch<BackendScheduledPostsResponse>(
-    fullUrl,
-    {
-      method: 'GET',
-    },
+    buildListPath(params),
+    { method: 'GET' },
     { withAuth: true },
   );
 
-  // Transform backend response to frontend format
   if (response.success && response.data) {
     const formatted: ScheduledPostsResponse = {
-      user_id: '', // Will be set by the hook if needed
+      user_id: '',
       scheduled_posts: response.data.scheduled_posts || [],
       total: response.data.total || 0,
       platform: response.data.platform || null,
@@ -61,7 +55,6 @@ export async function getScheduledPosts(
     return formatted;
   }
 
-  // Return empty response if not successful
   return {
     user_id: '',
     scheduled_posts: [],
@@ -72,7 +65,7 @@ export async function getScheduledPosts(
 
 export interface UpdateScheduledPostRequest {
   scheduled_time?: string;
-  post_data?: Record<string, any>;
+  post_data?: Record<string, unknown>;
   status?: string;
 }
 
@@ -80,21 +73,16 @@ export async function updateScheduledPost(
   scheduledPostId: string,
   updateData: UpdateScheduledPostRequest
 ): Promise<ScheduledPostsResponse> {
-  const url = buildApiUrl(`/scheduled-posts/${scheduledPostId}`);
-  
   const response = await apiFetch<BackendScheduledPostsResponse>(
-    url,
+    `/unified/scheduled-posts/${scheduledPostId}`,
     {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData),
     },
     { withAuth: true },
   );
 
-  // Transform backend response to frontend format
   clearCachedByPrefix('scheduled_posts:v1');
 
   if (response.success && response.data) {
@@ -106,7 +94,6 @@ export async function updateScheduledPost(
     };
   }
 
-  // Return empty response if not successful
   return {
     user_id: '',
     scheduled_posts: [],
@@ -118,17 +105,12 @@ export async function updateScheduledPost(
 export async function deleteScheduledPost(
   scheduledPostId: string
 ): Promise<ScheduledPostsResponse> {
-  const url = buildApiUrl(`/scheduled-posts/${scheduledPostId}`);
-  
   const response = await apiFetch<BackendScheduledPostsResponse>(
-    url,
-    {
-      method: 'DELETE',
-    },
+    `/unified/scheduled-posts/${scheduledPostId}`,
+    { method: 'DELETE' },
     { withAuth: true },
   );
 
-  // Transform backend response to frontend format
   clearCachedByPrefix('scheduled_posts:v1');
 
   if (response.success && response.data) {
@@ -140,7 +122,6 @@ export async function deleteScheduledPost(
     };
   }
 
-  // Return empty response if not successful
   return {
     user_id: '',
     scheduled_posts: [],
